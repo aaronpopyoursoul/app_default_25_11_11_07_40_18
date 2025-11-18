@@ -1,0 +1,34 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <!-- 背景圓形 -->
+  <circle cx="100" cy="100" r="95" fill="#1E3A5F" stroke="#7BC67B" stroke-width="3"/>
+  
+  <!-- 陰影效果 -->
+  <defs>
+    <radialGradient id="shadow" cx="35%" cy="35%">
+      <stop offset="0%" style="stop-color:#2E5A8F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A5F;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <circle cx="100" cy="100" r="95" fill="url(#shadow)"/>
+  
+  <!-- WitSeeU 文字 - 圓形版本 -->
+  <text x="100" y="95" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="1">
+    Wit
+  </text>
+  <text x="100" y="135" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="1">
+    SeeU
+  </text>
+  
+  <!-- 葉子圖示（在文字上） -->
+  <g transform="translate(120, 75)">
+    <!-- 上方綠葉 -->
+    <path d="M 0 0 Q 8 -3, 12 8 Q 8 2, 2 4 Q 0 -2, 0 0" fill="#7BC67B" opacity="0.95"/>
+    <!-- 下方深藍葉 -->
+    <path d="M 2 10 Q 10 18, 12 26 Q 6 20, 2 16 L 2 10" fill="#2E5A8F" opacity="1"/>
+  </g>
+  
+  <!-- ® 註冊商標 -->
+  <text x="135" y="65" font-family="Arial, sans-serif" font-size="14" fill="white" font-weight="bold">
+    ®
+  </text>
+</svg>

@@ -1,0 +1,86 @@
+/* 重置 margin, padding */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 文章基礎字型 */
+body,
+html {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 滾動條樣式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+/* 連結樣式 */
+a {
+  color: var(--button-bg);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 按鈕預設去除 outline */
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--button-bg);
+}
+
+/* input, textarea 去除原生邊框 */
+input,
+textarea {
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  transition: border-color 0.3s ease;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--button-bg);
+  outline: none;
+}
+
+/* Element Plus Icons 全域樣式 - 使用 :where() 確保穿透 scoped CSS */
+:where(.el-icon) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1em !important;
+  height: 1em !important;
+  font-size: inherit !important;
+}
+
+:where(.el-icon) svg {
+  width: 1em !important;
+  height: 1em !important;
+  fill: currentColor !important;
+}
+
+:where(.el-button) svg {
+  width: 1em !important;
+  height: 1em !important;
+  fill: currentColor !important;
+}

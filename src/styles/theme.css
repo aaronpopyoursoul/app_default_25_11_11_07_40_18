@@ -1,0 +1,96 @@
+:root {
+  --background-color: #f0f2f5;
+  --text-color: #333333;
+  --text-secondary: rgba(0, 0, 0, 0.55);
+  --card-bg: #ffffff;
+  --user-msg-bg: #dcf8c6;
+  --ai-msg-bg: #e3e3e3;
+  --button-bg: #409eff;
+  --scrollbar-thumb: #c0c0c0;
+
+  /* Layout-specific variables used by App.vue */
+  --header-bg: var(--card-bg);
+  --header-color: var(--text-color);
+  --menu-bg: var(--card-bg);
+  --main-bg: var(--background-color);
+  --footer-bg: var(--card-bg);
+  --footer-color: var(--text-color);
+  --border-color: rgba(0, 0, 0, 0.08);
+
+  /* Element Plus Menu 變數（亮色） */
+  --el-menu-bg-color: var(--menu-bg);
+  --el-menu-text-color: rgba(0, 0, 0, 0.78);
+  --el-menu-active-color: var(--el-color-primary);
+  --el-menu-hover-bg-color: rgba(124, 58, 237, 0.08);
+}
+
+/* 深色主題（GROK 風格） */
+.dark {
+  /* 基礎底色與文字 */
+  --background-color: #0b0f13;       /* 主背景：接近黑的石墨藍 */
+  --card-bg: #0f141a;                /* 卡片/面板：比主背景亮一階 */
+  --text-color: #e6e6e6;             /* 主要文字 */
+  --text-secondary: rgba(255, 255, 255, 0.65);
+
+  /* 對話泡泡（AI/使用者） */
+  --ai-msg-bg: #121a24;              /* AI 泡泡：更深一些，冷色調藍黑 */
+  --user-msg-bg: #1a2532;            /* 使用者泡泡：略亮帶藍調，易讀 */
+
+  /* 主要按鈕/強調色（Grok 類紫色系） */
+  --button-bg: #7c3aed;              /* 按鈕底色（亦做為主色） */
+
+  /* 滾動條/邊框 */
+  --scrollbar-thumb: #2d3748;        /* 深色滑塊 */
+  --border-color: rgba(255, 255, 255, 0.08);
+
+  /* 版面配色映射 */
+  --header-bg: var(--card-bg);
+  --header-color: var(--text-color);
+  --menu-bg: var(--card-bg);
+  --main-bg: var(--background-color);
+  --footer-bg: var(--card-bg);
+  --footer-color: var(--text-color);
+
+  /* Element Plus 主色覆寫（讓元件跟著主題色） */
+  --el-color-primary: #7c3aed;
+  --el-color-primary-dark-2: #6d28d9;
+  --el-color-primary-light-3: #a78bfa;
+  --el-color-primary-light-5: #c4b5fd;
+  --el-color-primary-light-7: #ddd6fe;
+  --el-color-primary-light-9: #f5f3ff;
+
+  /* Element Plus Menu 變數（深色） */
+  --el-menu-bg-color: var(--menu-bg);
+  --el-menu-text-color: rgba(230, 230, 230, 0.85);
+  --el-menu-active-color: #e9ddff; /* 較亮以提升對比 */
+  --el-menu-hover-bg-color: rgba(124, 58, 237, 0.16);
+}
+
+/* 卡片樣式 */
+.el-card {
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+/* 按鈕樣式 */
+.el-button {
+  border-radius: 6px;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.el-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.el-button:active:not(:disabled) {
+  filter: brightness(0.9);
+}
+
+/* Footer 固定高度 */
+.el-footer {
+  height: 45px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
