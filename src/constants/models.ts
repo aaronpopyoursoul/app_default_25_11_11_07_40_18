@@ -8,7 +8,6 @@ export interface ModelOption {
 }
 
 export const MODEL_OPTIONS: ModelOption[] = [
-  { label: 'GPT-5 mini', value: 'GPT-5 mini', icon: ChatDotRound, description: '速度快且經濟實惠' },
-  { label: 'GPT-5', value: 'GPT-5', icon: Lightning, description: '快速回應' },
-  { label: 'GPT-4o', value: 'GPT-4o', icon: Cpu, description: '最強思考力' }
+  { label: 'gpt-4o-mini', value: 'gpt-4o-mini', icon: Cpu, description: '高性價比推理能力' },
+  { label: 'gpt-3.5-turbo', value: 'gpt-3.5-turbo', icon: ChatDotRound, description: '經濟快速回應' }
 ]

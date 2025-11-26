@@ -12,6 +12,22 @@ export interface ChatFile {
 export interface ChatContent {
   text: string
   files: ChatFile[]
+  prediction?: {
+    probability: number
+    decision_label: string
+    risk_level: string
+    shap_top_features: Array<{
+      feature_en: string
+      feature_cn: string
+      mean_abs_shap: number
+    }>
+  } | null
+  meta?: {
+    collapsible?: boolean
+    truncatedPreview?: string
+    isHtml?: boolean
+    messageKind?: 'answer' | 'result' | 'usage-info' | 'error' | 'default'
+  }
 }
 
 export interface ChatMessage {
