@@ -14,90 +14,77 @@
     </div>
     <div class="form-card">
       <div class="compact-form">
-        <!-- 主要區域：上傳區、選擇器、按鈕全部並排 -->
+        <!-- 主要區域：上傳區 50% + 配置執行區 50% -->
         <div class="main-sections-row">
-          <!-- 檔案上傳區：垂直排列 -->
+          <!-- 檔案上傳區：JD 與 Resume 橫向並排 -->
           <div class="upload-section">
             <div class="upload-row">
-              <div class="upload-col">
-                <label class="upload-label">上傳 JD 文件</label>
-                <div class="file-upload-area" :class="{ 'has-file': jdFile }" @click="triggerFile('jd')">
-                  <input ref="jdInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'jd')" />
-                  <div v-if="!jdFile" class="upload-placeholder">
-                    <el-icon class="upload-icon"><Upload /></el-icon>
-                    <span class="upload-hint">點擊選擇檔案</span>
-                    <span class="upload-format">docx / txt</span>
-                  </div>
-                  <div v-else class="file-preview" @click.stop>
-                    <div class="file-info">
-                      <span class="file-icon">📄</span>
-                      <div class="file-details">
-                        <span class="file-name-display">{{ jdFile.name }}</span>
-                        <span class="file-size">{{ formatFileSize(jdFile.size) }}</span>
-                      </div>
+              <div class="file-upload-area" :class="{ 'has-file': jdFile }" @click="triggerFile('jd')">
+                <input ref="jdInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'jd')" />
+                <div v-if="!jdFile" class="upload-placeholder">
+                  <el-icon class="upload-icon"><Upload /></el-icon>
+                  <span class="upload-hint">點擊選擇 JD 檔案</span>
+                </div>
+                <div v-else class="file-preview" @click.stop>
+                  <div class="file-info">
+                    <span class="file-icon">📄</span>
+                    <div class="file-details">
+                      <span class="file-name-display">{{ jdFile.name }}</span>
+                      <span class="file-size">{{ formatFileSize(jdFile.size) }}</span>
                     </div>
-                    <el-icon class="delete-icon" @click.stop="clearFile('jd')">
-                      <component :is="'Close'" />
-                    </el-icon>
                   </div>
+                  <el-icon class="delete-icon" @click.stop="clearFile('jd')">
+                    <component :is="'Close'" />
+                  </el-icon>
                 </div>
               </div>
-              <div class="upload-col">
-                <label class="upload-label">上傳 Resume 文件</label>
-                <div class="file-upload-area" :class="{ 'has-file': resumeFile }" @click="triggerFile('resume')">
-                  <input ref="resumeInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'resume')" />
-                  <div v-if="!resumeFile" class="upload-placeholder">
-                    <el-icon class="upload-icon"><Upload /></el-icon>
-                    <span class="upload-hint">點擊選擇檔案</span>
-                    <span class="upload-format">docx / txt</span>
-                  </div>
-                  <div v-else class="file-preview" @click.stop>
-                    <div class="file-info">
-                      <span class="file-icon">📄</span>
-                      <div class="file-details">
-                        <span class="file-name-display">{{ resumeFile.name }}</span>
-                        <span class="file-size">{{ formatFileSize(resumeFile.size) }}</span>
-                      </div>
+              <div class="file-upload-area" :class="{ 'has-file': resumeFile }" @click="triggerFile('resume')">
+                <input ref="resumeInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'resume')" />
+                <div v-if="!resumeFile" class="upload-placeholder">
+                  <el-icon class="upload-icon"><Upload /></el-icon>
+                  <span class="upload-hint">點擊選擇 Resume 檔案</span>
+                </div>
+                <div v-else class="file-preview" @click.stop>
+                  <div class="file-info">
+                    <span class="file-icon">📄</span>
+                    <div class="file-details">
+                      <span class="file-name-display">{{ resumeFile.name }}</span>
+                      <span class="file-size">{{ formatFileSize(resumeFile.size) }}</span>
                     </div>
-                    <el-icon class="delete-icon" @click.stop="clearFile('resume')">
-                      <component :is="'Close'" />
-                    </el-icon>
                   </div>
+                  <el-icon class="delete-icon" @click.stop="clearFile('resume')">
+                    <component :is="'Close'" />
+                  </el-icon>
                 </div>
               </div>
             </div>
           </div>
           
-          <!-- 選擇器區：垂直排列 -->
-          <div class="selector-section">
-            <div class="selector-row">
-              <div class="selector-col">
-                <div class="label-input-row">
-                  <label class="compact-label">
-                    AI 模型
-                  </label>
-                  <ModelSelector v-model="model" :options="modelOptions" />
+          <!-- 配置執行區：選擇器 + 按鈕組合 -->
+          <div class="config-action-section">
+            <!-- 選擇器區：AI 模型和版本橫向並排 -->
+            <div class="selector-section">
+              <div class="selector-row">
+                <div class="selector-item">
+                  <label class="compact-label">Model</label>
+                  <ModelSelector v-model="model" :options="modelOptions" class="full-width-selector" />
                 </div>
-              </div>
-              <div class="selector-col">
-                <div class="label-input-row">
-                  <label class="compact-label">
-                    WeSeeU 版本
-                  </label>
+                <div class="selector-item">
+                  <label class="compact-label">Version</label>
                   <el-select v-model="version" size="small" class="version-select" placeholder="請選擇版本">
                     <el-option v-for="v in versions" :key="v" :label="v" :value="v" />
                   </el-select>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <!-- 按鈕區 -->
-          <div class="action-section">
-            <el-button type="primary" size="large" :loading="isAnalyzing" :disabled="!canAnalyze" @click="startAnalyze" class="analyze-btn">
-              <el-icon v-if="!isAnalyzing" style="margin-right: 4px;"><DataAnalysis /></el-icon>
-              {{ isAnalyzing ? '分析中...' : '開始分析' }}
-            </el-button>
+            
+            <!-- 按鈕區 -->
+            <div class="action-section">
+              <el-button type="primary" size="large" :loading="isAnalyzing" :disabled="!canAnalyze" @click="startAnalyze" class="analyze-btn">
+                <el-icon v-if="!isAnalyzing" style="margin-right: 4px;"><DataAnalysis /></el-icon>
+                {{ isAnalyzing ? '分析中...' : '開始分析' }}
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -455,10 +442,17 @@ async function startAnalyze() {
   gap: 12px;
 }
 
-/* 主要區域並排容器 */
+/* 主要區域並排容器：上傳區 50% + 配置執行區 50% */
 .main-sections-row {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* 配置執行區：包含選擇器和按鈕 */
+.config-action-section {
+  display: flex;
   gap: 12px;
   align-items: stretch;
 }
@@ -468,7 +462,7 @@ async function startAnalyze() {
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(248, 248, 248, 0.7));
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  padding: 12px;
+  padding: 14px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -500,32 +494,18 @@ async function startAnalyze() {
               inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-/* 檔案上傳區:橫向並排 */
+/* 檔案上傳區:JD 與 Resume 橫向並排 */
 .upload-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  display: flex;
+  gap: 12px;
   flex: 1;
 }
 
-.upload-col {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.upload-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-color);
-  letter-spacing: 0.1px;
-  opacity: 0.9;
-}
-
-/* 文件上傳區域 */
+/* 文件上傳區域：橫向並排 */
 .file-upload-area {
   position: relative;
-  height: 75px;
+  flex: 1;
+  height: 44px;
   border: 1.5px dashed rgba(0, 0, 0, 0.15);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.4);
@@ -534,6 +514,7 @@ async function startAnalyze() {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 12px;
 }
 
 .file-upload-area:hover {
@@ -577,24 +558,22 @@ async function startAnalyze() {
   background: linear-gradient(to bottom, rgba(10, 132, 255, 0.12), rgba(10, 132, 255, 0.15));
 }
 
-/* 上傳佔位符 */
+/* 上傳佔位符：緊湊化 */
 .upload-placeholder {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px;
+  gap: 8px;
+  padding: 0;
 }
 
 .upload-icon {
-  font-size: 22px;
+  font-size: 18px;
   color: rgba(0, 122, 255, 0.6);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .file-upload-area:hover .upload-icon {
   color: rgba(0, 122, 255, 0.8);
-  transform: translateY(-2px);
 }
 
 .upload-hint {
@@ -604,12 +583,7 @@ async function startAnalyze() {
   opacity: 0.7;
 }
 
-.upload-format {
-  font-size: 10px;
-  color: var(--text-color);
-  opacity: 0.5;
-  font-weight: 400;
-}
+/* 移除 upload-format */
 
 :global(.dark) .upload-icon {
   color: rgba(10, 132, 255, 0.7);
@@ -619,14 +593,14 @@ async function startAnalyze() {
   color: rgba(10, 132, 255, 0.9);
 }
 
-/* 文件預覽 */
+/* 文件預覽：緊湊化 */
 .file-preview {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 10px 12px;
   gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .file-info {
@@ -638,15 +612,15 @@ async function startAnalyze() {
 }
 
 .file-icon {
-  font-size: 20px;
+  font-size: 16px;
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .file-details {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
   flex: 1;
 }
@@ -664,6 +638,7 @@ async function startAnalyze() {
   font-size: 10px;
   color: var(--text-color);
   opacity: 0.6;
+  white-space: nowrap;
 }
 
 .delete-icon {
@@ -695,19 +670,29 @@ async function startAnalyze() {
   display: none;
 }
 
-/* Label 和輸入控件橫向排列 */
-.label-input-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Label 樣式調整 */
+.compact-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  letter-spacing: 0.1px;
+  opacity: 0.9;
+  margin-bottom: 6px;
+  display: block;
 }
 
-/* 選擇器區段: macOS Sonoma 風格 */
+.label-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* 選擇器區段:精簡單行佈局 */
 .selector-section {
+  flex: 1;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(248, 248, 248, 0.7));
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  padding: 12px;
+  padding: 12px 14px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -740,55 +725,57 @@ async function startAnalyze() {
 }
 
 .selector-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  flex: 1;
-}
-
-.selector-col {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+  flex: 1;
+  align-items: center;
 }
 
-.compact-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-color);
+.selector-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  letter-spacing: 0.1px;
-  white-space: nowrap;
-  min-width: fit-content;
-  opacity: 0.9;
-}
-
-.label-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.version-select { 
+  gap: 10px;
   flex: 1;
   min-width: 0;
 }
 
-/* 按鈕區 */
+/* Label 樣式調整：橫向排列用 */
+.compact-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color);
+  letter-spacing: 0.1px;
+  opacity: 0.9;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+/* 選擇器全寬更新 */
+.full-width-selector {
+  flex: 1;
+  min-width: 0;
+}
+
+.version-select { 
+  width: 70px;
+  flex-shrink: 0;
+}
+
+/* 按鈕區：緊湊化 */
 .action-section {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 140px;
 }
 
-/* macOS Sonoma 主要操作按鈕 */
+/* macOS Sonoma 主要操作按鈕：緊湊化高度 */
 .analyze-btn {
-  min-width: 140px;
-  height: 44px;
-  font-size: 15px;
-  font-weight: 500;
-  padding: 0 24px;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 20px;
   border-radius: 10px;
   border: 0.5px solid rgba(0, 0, 0, 0.1);
   background: linear-gradient(to bottom, #007AFF 0%, #0070F5 100%);
@@ -796,7 +783,11 @@ async function startAnalyze() {
               inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .analyze-btn:not(:disabled):hover {
@@ -901,8 +892,11 @@ async function startAnalyze() {
     grid-template-columns: 1fr;
   }
   
-  .upload-row,
-  .selector-row {
+  .config-action-section {
+    flex-direction: column;
+  }
+  
+  .upload-row {
     grid-template-columns: 1fr;
   }
   
@@ -910,12 +904,7 @@ async function startAnalyze() {
     padding: 8px;
   }
   
-  .action-section {
-    align-items: stretch;
-  }
-  
   .analyze-btn {
-    width: 100%;
     min-height: 48px;
   }
 }
@@ -1091,9 +1080,24 @@ async function startAnalyze() {
 
 /* 響應式佈局 */
 @media (max-width: 768px) {
-  .upload-row,
-  .selector-row {
+  .main-sections-row {
     grid-template-columns: 1fr;
+  }
+  
+  .config-action-section {
+    flex-direction: column;
+  }
+  
+  .upload-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .csr-view {
+    padding: 8px;
+  }
+  
+  .analyze-btn {
+    min-height: 48px;
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <el-aside :width="menuOpened ? '200px' : '64px'" class="app-menu">
+  <el-aside :width="menuOpened ? '225px' : '64px'" class="app-menu">
     <div :class="['menu-top', { 'menu-collapsed': !menuOpened }]">
       <el-icon class="menu-icon" @click="$emit('toggle-menu')">
         <ArrowLeftBold v-if="menuOpened" />
