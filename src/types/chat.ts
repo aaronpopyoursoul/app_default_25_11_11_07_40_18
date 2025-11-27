@@ -27,6 +27,7 @@ export interface ChatContent {
     truncatedPreview?: string
     isHtml?: boolean
     messageKind?: 'answer' | 'result' | 'usage-info' | 'error' | 'default'
+    formSnapshotId?: string // 若此訊息攜帶表單快照供檢視
   }
 }
 

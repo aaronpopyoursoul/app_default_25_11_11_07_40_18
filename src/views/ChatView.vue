@@ -19,13 +19,18 @@
     </div>
 
     <!-- 主要內容 -->
-    <div class="main-content">
+    <div class="chat-card">
+      <h2 class="title">
+        <span class="title-icon">💳</span>
+        <span class="title-text">智能貸款評估</span>
+      </h2>
       <div ref="messagesContainer" class="messages-container">
         <transition-group name="message-fade" tag="div">
           <ChatMessage
             v-for="(msg, index) in messages"
             :key="msg.id"
             :message="msg"
+            @show-form="showFormSnapshot"
           />
         </transition-group>
         <div v-if="isWaitingResponse" class="typing">
@@ -34,8 +39,8 @@
           <span class="dot"></span>
         </div>
       </div>
-      <ChatInput @send="handleSend" @form-data-update="handleFormDataUpdate" />
     </div>
+    <ChatInput @send="handleSend" @form-data-update="handleFormDataUpdate" />
 
     <!-- 使用說明彈窗 -->
     <el-dialog
@@ -95,6 +100,32 @@
         </div>
       </div>
     </el-dialog>
+    <!-- 授信審查資訊唯讀 Dialog -->
+    <el-dialog v-model="showFormSnapshotDialog" title="授信審查資訊" width="680px" :show-close="true" align-center class="snapshot-dialog">
+      <div v-if="activeSnapshotId && formSnapshots[activeSnapshotId]" class="snapshot-content">
+        <div class="snapshot-group" v-for="group in snapshotGroups" :key="group.title">
+          <div class="snapshot-group-title">{{ group.title }}</div>
+          <el-descriptions :column="2" border class="snapshot-descriptions">
+            <template v-for="key in group.keys" :key="key">
+              <el-descriptions-item v-if="(formSnapshots[activeSnapshotId] as any)[key]" :label="fieldLabels[key] || key">
+                <span>
+                  {{
+                    key === 'loan_amnt' || key === 'installment' || key === 'annual_inc' || key === 'revol_bal'
+                      ? formatCurrency((formSnapshots[activeSnapshotId] as any)[key])
+                      : key === 'int_rate' || key === 'revol_util' || key === 'dti'
+                        ? formatPercent((formSnapshots[activeSnapshotId] as any)[key])
+                        : toLabel(key, (formSnapshots[activeSnapshotId] as any)[key])
+                  }}
+                </span>
+              </el-descriptions-item>
+            </template>
+          </el-descriptions>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showFormSnapshotDialog = false">關閉</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -102,14 +133,70 @@
 import { ref, watch, nextTick, onMounted } from 'vue'
 import ChatMessage from '@/components/ChatMessage.vue'
 import ChatInput from '@/components/ChatInput.vue'
+import { useScrollToBottom } from '@/hooks/useScrollToBottom'
 import type { ChatMessage as ChatMessageType, ChatFile } from '@/types/chat'
 import { chatWithAI } from '@/services/lendingClubApi'
 import type { ChatRequest, LoanInput } from '@/types/api'
 import { ElMessage } from 'element-plus'
+import { TERM_OPTIONS, GRADE_OPTIONS, SUB_GRADE_OPTIONS, HOME_OWNERSHIP_OPTIONS, VERIFICATION_STATUS_OPTIONS, PURPOSE_OPTIONS, APPLICATION_TYPE_OPTIONS } from '@/constants/lendingEnums'
+
+// 設定組件名稱以支援 KeepAlive
+defineOptions({
+  name: 'ChatView'
+})
 
 interface ExtendedChatMessage extends ChatMessageType { avatar?: string }
 
 const messages = ref<ExtendedChatMessage[]>([])
+// 表單快照：存放不同 form_data 的內容，鍵為 snapshotId
+const formSnapshots = ref<Record<string, LoanInput>>({})
+// 活動快照 Dialog 狀態
+const showFormSnapshotDialog = ref(false)
+const activeSnapshotId = ref<string | null>(null)
+// 中文標籤對照
+const fieldLabels: Record<string, string> = {
+  loan_amnt: '貸款金額',
+  term: '期限/期數',
+  int_rate: '利率',
+  installment: '分期付款金額',
+  grade: '貸款等級',
+  sub_grade: '貸款子等級',
+  emp_title: '職位名稱',
+  emp_length: '職位年資',
+  home_ownership: '房屋所有權',
+  annual_inc: '年收入',
+  verification_status: '驗證狀態',
+  issue_d: '核發月份',
+  purpose: '目的',
+  dti: '債務收入比',
+  earliest_cr_line: '最早信用紀錄月份',
+  open_acc: '開立帳戶數',
+  pub_rec: '公共紀錄',
+  revol_bal: '循環餘額',
+  revol_util: '循環使用率',
+  total_acc: '累積帳戶總數',
+  mort_acc: '抵押貸款戶數',
+  pub_rec_bankruptcies: '破產紀錄次數',
+  application_type: '申請類型'
+}
+
+// 將 value 轉換為對應的中文 label（未命中則回傳原值）
+const toLabel = (key: string, value: any): string => {
+  const valStr = String(value)
+  const valUpper = valStr.toUpperCase()
+  const findLabel = (opts: { value: string; label: string }[]) =>
+    opts.find(o => o.value === valStr || o.value === valUpper)?.label
+  switch (key) {
+    case 'term': return findLabel(TERM_OPTIONS) || String(value)
+    case 'grade': return findLabel(GRADE_OPTIONS) || String(value)
+    case 'sub_grade': return findLabel(SUB_GRADE_OPTIONS) || String(value)
+    case 'home_ownership': return findLabel(HOME_OWNERSHIP_OPTIONS) || String(value)
+    case 'verification_status': return findLabel(VERIFICATION_STATUS_OPTIONS) || String(value)
+    case 'purpose': return findLabel(PURPOSE_OPTIONS) || String(value)
+    case 'application_type': return findLabel(APPLICATION_TYPE_OPTIONS) || String(value)
+    default: return String(value)
+  }
+}
 const messagesContainer = ref<HTMLElement | null>(null)
 const sessionId = ref(`user-${Date.now()}`) // 為每個用戶會話生成唯一 ID
 const currentFormData = ref<LoanInput | null>(null) // 儲存當前的表單數據
@@ -140,15 +227,10 @@ const closeGuide = () => {
 const avatarAI = new URL('../assets/avatar-ai.svg', import.meta.url).href
 const avatarUser = 'https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png'
 
-const scrollToBottom = () => {
-  nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-    }
-  })
-}
+// 使用改進的滾動邏輯
+const { forceScroll } = useScrollToBottom(messagesContainer)
 
-watch(messages, () => { scrollToBottom() })
+// 移除自動 watch，改為手動控制滾動時機
 
 // 比較兩個 LoanInput 是否相同
 const isFormDataEqual = (data1: LoanInput | null, data2: LoanInput | null): boolean => {
@@ -173,22 +255,30 @@ const handleFormDataUpdate = (formData: LoanInput) => {
 interface SendPayload { text: string; files: ChatFile[] }
 const handleSend = async (content: SendPayload) => {
   if (!content.text && !content.files.length) return
-  
+  // 判斷是否有新表單數據
+  const hasFormDataChanged = !isFormDataEqual(currentFormData.value, lastSentFormData.value)
+  let formSnapshotId: string | undefined
+  if (hasFormDataChanged && currentFormData.value) {
+    formSnapshotId = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+    formSnapshots.value[formSnapshotId] = currentFormData.value
+  }
+
   const userMsg: ExtendedChatMessage = {
     id: Date.now() + '-user',
     type: 'user',
-    content: { text: content.text, files: content.files || [] },
+    content: { text: content.text, files: content.files || [], meta: formSnapshotId ? { formSnapshotId } : undefined },
     timestamp: new Date(),
     avatar: avatarUser
   }
   messages.value.push(userMsg)
   
+  // 情境 1：用戶發送訊息 → 強制滾動
+  forceScroll()
+  
   // 開始等待狀態
   isWaitingResponse.value = true
 
   try {
-    // 檢查 form_data 是否有變更
-    const hasFormDataChanged = !isFormDataEqual(currentFormData.value, lastSentFormData.value)
     
     // 只有在 form_data 有變更時才發送,否則發送 null
     const formDataToSend = hasFormDataChanged ? currentFormData.value : null
@@ -232,6 +322,9 @@ const handleSend = async (content: SendPayload) => {
       avatar: avatarAI
     }
     messages.value.push(aiMsg)
+    
+    // 情境 2：AI 回覆 → 永遠滾動
+    forceScroll()
 
     // 如果有預測結果,記錄到 console
     if (response.prediction) {
@@ -275,11 +368,36 @@ const handleSend = async (content: SendPayload) => {
     isWaitingResponse.value = false
   }
 }
+
+// 顯示表單快照 Dialog
+const showFormSnapshot = (id: string) => {
+  activeSnapshotId.value = id
+  showFormSnapshotDialog.value = true
+}
+
+// 格式化展示：千分位、百分比等
+const formatCurrency = (n: number | string): string => {
+  const num = Number(n)
+  if (isNaN(num)) return String(n)
+  return num.toLocaleString('en-US')
+}
+const formatPercent = (n: number | string): string => {
+  const num = Number(n)
+  if (isNaN(num)) return String(n)
+  return `${num}%`
+}
+
+// 分組顯示的欄位鍵
+const snapshotGroups: Array<{ title: string; keys: string[] }> = [
+  { title: '基本資訊', keys: ['loan_amnt','term','int_rate','installment','purpose','issue_d','grade','sub_grade','application_type','home_ownership','emp_length','annual_inc'] },
+  { title: '信用資料', keys: ['earliest_cr_line','open_acc','total_acc','pub_rec','pub_rec_bankruptcies','mort_acc'] },
+  { title: '額度與比例', keys: ['dti','revol_bal','revol_util'] },
+]
 </script>
 
 <style scoped>
 /* 同原檔樣式（略） */
-.chat-view { position: relative; display: flex; flex-direction: column; height: 100%; width: 100%; padding: 20px; gap: 12px; overflow: hidden; }
+.chat-view { position: relative; display: flex; flex-direction: column; height: 100%; width: 100%; padding: 12px; gap: 12px; overflow: hidden; }
 .animated-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
 .glow-orbs { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
 .orb { position: absolute; border-radius: 50%; filter: blur(50px); opacity: 0.5; }
@@ -293,8 +411,86 @@ const handleSend = async (content: SendPayload) => {
 @keyframes orbFloat2 { 0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.5; } 33% { transform: translate(-45px, 55px) scale(1.12); opacity: 0.65; } 66% { transform: translate(35px, -45px) scale(0.88); opacity: 0.45; } }
 @keyframes orbFloat3 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; } 20% { transform: translate(40px, 30px) scale(1.08); opacity: 0.6; } 40% { transform: translate(-30px, -50px) scale(0.92); opacity: 0.7; } 60% { transform: translate(25px, -35px) scale(1.1); opacity: 0.55; } 80% { transform: translate(-35px, 45px) scale(0.95); opacity: 0.45; } }
 
-.main-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; width: 100%; gap: 12px; }
-.messages-container { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; display: flex; flex-direction: column; }
+.chat-card { 
+  position: relative;
+  z-index: 1;
+  background: var(--card-bg); 
+  color: var(--text-color); 
+  border: 1px solid var(--border-color); 
+  border-radius: 8px; 
+  padding: 12px;
+  flex: 1;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.title { 
+  font-size: 19px; 
+  font-weight: 500; 
+  margin: -12px -12px 16px -12px;
+  padding: 14px 16px;
+  color: var(--text-color);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(249, 249, 249, 0.9));
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px 8px 0 0;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.title:hover {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(250, 250, 250, 0.95));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.title-icon {
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.title-text {
+  font-weight: 500;
+  background: linear-gradient(135deg, #1d1d1f 0%, #424245 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 深色模式標題樣式 */
+:global(.dark) .title {
+  background: linear-gradient(to bottom, rgba(50, 50, 52, 0.7), rgba(44, 44, 46, 0.8));
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+:global(.dark) .title:hover {
+  background: linear-gradient(to bottom, rgba(55, 55, 57, 0.75), rgba(48, 48, 50, 0.85));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+:global(.dark) .title-text {
+  background: linear-gradient(135deg, #f5f5f7 0%, #d1d1d6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.messages-container { 
+  flex: 1;
+  overflow-y: auto; 
+  overflow-x: hidden; 
+  padding: 8px; 
+  display: flex; 
+  flex-direction: column; 
+}
 .message-fade-enter-active, .message-fade-leave-active { transition: opacity 0.5s; }
 .message-fade-enter-from, .message-fade-leave-to { opacity: 0; }
 
@@ -330,6 +526,12 @@ const handleSend = async (content: SendPayload) => {
   40% { 
     opacity: 0.9; 
   } 
+}
+
+/* ChatInput 組件樣式 */
+:deep(.chat-input) {
+  position: relative;
+  z-index: 1;
 }
 
 /* 使用說明彈窗樣式 */
@@ -499,5 +701,39 @@ const handleSend = async (content: SendPayload) => {
 :global(.dark) .step-card:hover {
   border-color: rgba(124, 58, 237, 0.45);
   box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+</style>
+<style scoped>
+/* 授信審查資訊 Dialog 樣式優化（macOS 風格） */
+:deep(.snapshot-dialog .el-dialog__header){
+  background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(249,249,249,0.95));
+  border-bottom: 0.5px solid rgba(0,0,0,0.06);
+}
+:deep(.snapshot-dialog .el-dialog__title){
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.snapshot-content{ padding: 8px 4px 4px; }
+.snapshot-header{
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 4px 0 10px;
+  opacity: 0.85;
+}
+:deep(.snapshot-descriptions){
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+:deep(.snapshot-descriptions .el-descriptions__body){
+  padding: 8px;
+}
+:deep(.el-descriptions__label){
+  font-weight: 500;
+}
+:global(.dark) :deep(.snapshot-dialog .el-dialog__header){
+  background: linear-gradient(to bottom, rgba(50,50,52,0.7), rgba(44,44,46,0.82));
+  border-bottom-color: rgba(255,255,255,0.12);
 }
 </style>

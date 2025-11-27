@@ -14,6 +14,7 @@ export interface LoanInput {
   mort_acc: number
   pub_rec_bankruptcies: number
   earliest_cr_line: string
+  issue_d?: string
   term: string
   grade: string
   emp_length: string

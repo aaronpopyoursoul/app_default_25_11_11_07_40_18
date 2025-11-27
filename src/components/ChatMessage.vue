@@ -72,12 +72,17 @@
   </div>
   <div v-else class="chat-message user">
     <div class="chat-bubble">
-      <div class="content-text" v-if="message.content.text">{{ message.content.text }}</div>
+      <div class="content-text user-message-text" v-if="message.content.text" v-html="formatUserText(message.content.text)"></div>
       <div class="content-files" v-if="message.content.files && message.content.files.length">
         <template v-for="file in message.content.files" :key="file.id">
           <img v-if="isImage(file)" :src="file.url" alt="Image file" class="file-preview-image" />
           <div v-else class="file-preview-name" :title="file.name">📄 {{ file.name }}</div>
         </template>
+      </div>
+      <div v-if="message.content.meta?.formSnapshotId" class="form-snapshot-link">
+        <button class="snapshot-link-btn" @click="emitShowForm(message.content.meta.formSnapshotId)">
+          <span class="link-icon">🔎</span> 查看表單
+        </button>
       </div>
       <div class="timestamp">{{ formattedTimestamp }}</div>
     </div>
@@ -100,7 +105,8 @@ export default defineComponent({
       required: true
     }
   },
-  setup(props){
+  emits: ['show-form'],
+  setup(props, { emit }){
     const formattedTimestamp = computed(() => {
       if (!props.message.timestamp) return ''
       const date = new Date(props.message.timestamp)
@@ -111,6 +117,13 @@ export default defineComponent({
     const isHtmlContent = computed(() => !!props.message.content.meta?.isHtml)
     const isResultKind = computed(() => props.message.content.meta?.messageKind === 'result')
     const isUsageInfoKind = computed(() => props.message.content.meta?.messageKind === 'usage-info')
+    
+    // 格式化使用者訊息文字 - 保留換行
+    function formatUserText(text: string): string {
+      if (!text) return ''
+      // 將 \n 轉為 <br>，並保留原文
+      return text.replace(/\n/g, '<br>')
+    }
     
     // Prediction 折疊狀態
     const isPredictionExpanded = ref(true)
@@ -262,13 +275,15 @@ export default defineComponent({
       return `${percentage}%`
     }
     
+    const emitShowForm = (id: string) => emit('show-form', id)
+
     return { 
       aiAvatar, userAvatar, formattedTimestamp, isImage, 
       isHtmlContent, isResultKind, isUsageInfoKind,
-      formatTextContent, renderResultTable, renderUsageInfo, decodeHtml,
+      formatTextContent, formatUserText, renderResultTable, renderUsageInfo, decodeHtml,
       getRiskText, getRiskIcon, getRiskClass, getImpactWidth,
       isPredictionExpanded, togglePrediction,
-      ArrowDown, ArrowUp 
+      ArrowDown, ArrowUp, emitShowForm
     }
   }
 })
@@ -291,13 +306,33 @@ export default defineComponent({
 .file-preview-image{ width:120px; height:90px; object-fit:cover; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,.18); }
 .file-preview-name{ background:rgba(0,0,0,.08); padding:4px 8px; border-radius:6px; font-size:12px; max-width:140px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
 .timestamp{ position:absolute; right:10px; bottom:4px; font-size:11px; opacity:.55; color:var(--text-color); user-select:none; }
+.form-snapshot-link{ margin-top:6px; }
+.snapshot-link-btn{
+  background: transparent;
+  color: #0A84FF;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.snapshot-link-btn:hover{ color: #007AFF; }
+.link-icon{ margin-right: 4px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.12)); }
 
 /* HTML content styling */
 :deep(.html-content){ line-height:1.6; }
 :deep(.html-content h2){ font-size:1.1em; font-weight:600; margin:8px 0 6px; color:var(--text-color); }
 :deep(.html-content p){ margin:4px 0; line-height:1.5; color:var(--text-color); }
-:deep(.html-content ul, .html-content ol){ margin:6px 0; padding-left:20px; }
-:deep(.html-content li){ margin:3px 0; color:var(--text-color); }
+:deep(.html-content ul, .html-content ol){ 
+  margin:6px 0; 
+  padding-left:24px; 
+  list-style: none;
+}
+:deep(.html-content li){ 
+  margin:3px 0; 
+  color:var(--text-color);
+  line-height: 1.6;
+}
 :deep(.html-content strong){ font-weight:600; color:var(--text-color); }
 :deep(.html-content em){ font-style:italic; }
 :deep(.html-content code){ background:rgba(0,0,0,.08); padding:2px 6px; border-radius:3px; font-family:monospace; font-size:0.9em; }

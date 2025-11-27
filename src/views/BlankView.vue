@@ -7,6 +7,10 @@
   </div>
 </template>
 <script setup lang="ts">
+// 設定組件名稱以支援 KeepAlive
+defineOptions({
+  name: 'BlankView'
+})
 // 空白頁面，僅示範路由；無邏輯
 </script>
 <style scoped>

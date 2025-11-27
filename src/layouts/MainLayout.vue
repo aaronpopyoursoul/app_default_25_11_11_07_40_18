@@ -1,13 +1,17 @@
 <template>
   <div :class="['app-container', theme]">
-    <HeaderBar :is-dark="isDark" :is-animating-theme="isAnimatingTheme" :current-menu-label="currentMenuLabel" @toggle-theme="toggleTheme" />
+    <HeaderBar :is-dark="isDark" :is-animating-theme="isAnimatingTheme" @toggle-theme="toggleTheme" />
     <div class="main-wrapper">
       <SideMenu :menu-opened="menuOpened" @toggle-menu="toggleMenu" />
       <div class="app-main">
         <div class="main-content">
-          <transition name="fade" mode="out-in">
-            <router-view />
-          </transition>
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <keep-alive>
+                <component :is="Component" />
+              </keep-alive>
+            </transition>
+          </router-view>
         </div>
         <AppFooter />
       </div>
@@ -16,8 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, provide } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, provide } from 'vue'
 import { useTheme } from '@/hooks/useTheme'
 import HeaderBar from '@/layouts/HeaderBar.vue'
 import SideMenu from '@/layouts/SideMenu.vue'
@@ -25,15 +28,6 @@ import AppFooter from '@/layouts/AppFooter.vue'
 
 const { isDark, isAnimatingTheme, theme, toggleTheme, initTheme } = useTheme()
 const menuOpened = ref(true)
-
-const menuLabels: Record<string, string> = {
-  '/chat': '智能貸款還款能力評估',
-  '/csr': 'CSR 智能履歷評估',
-  '/blank': 'blank page'
-}
-
-const route = useRoute()
-const currentMenuLabel = computed(() => menuLabels[route.path] || '客戶財力智能分析')
 
 const toggleMenu = () => { menuOpened.value = !menuOpened.value }
 initTheme()

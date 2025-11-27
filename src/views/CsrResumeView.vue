@@ -1,7 +1,10 @@
 <template>
   <div class="csr-view">
     <div class="chat-card">
-      <h2 class="title">CSR 智能履歷評估</h2>
+      <h2 class="title">
+        <span class="title-icon">📋</span>
+        <span class="title-text">CSR 智能履歷評估</span>
+      </h2>
       <div ref="messagesContainer" class="messages-container">
         <transition-group name="message-fade" tag="div">
           <ChatMessage v-for="m in messages" :key="m.id" :message="m" />
@@ -17,36 +20,48 @@
           <div class="upload-section">
             <div class="upload-row">
               <div class="upload-col">
-                <div class="label-input-row">
-                  <label class="compact-label">
-                    上傳 JD（格式：docx/txt）
-                  </label>
-                  <div class="file-input-group">
-                    <input ref="jdInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'jd')" />
-                    <el-button size="small" class="file-btn" type="primary" @click="() => triggerFile('jd')">
-                      <el-icon style="margin-right: 4px;"><Upload /></el-icon>
-                      選擇檔案
-                    </el-button>
-                    <span class="file-name" :class="{ 'has-file': jdFile }">
-                      {{ jdFile?.name || '未選擇任何檔案' }}
-                    </span>
+                <label class="upload-label">上傳 JD 文件</label>
+                <div class="file-upload-area" :class="{ 'has-file': jdFile }" @click="triggerFile('jd')">
+                  <input ref="jdInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'jd')" />
+                  <div v-if="!jdFile" class="upload-placeholder">
+                    <el-icon class="upload-icon"><Upload /></el-icon>
+                    <span class="upload-hint">點擊選擇檔案</span>
+                    <span class="upload-format">docx / txt</span>
+                  </div>
+                  <div v-else class="file-preview" @click.stop>
+                    <div class="file-info">
+                      <span class="file-icon">📄</span>
+                      <div class="file-details">
+                        <span class="file-name-display">{{ jdFile.name }}</span>
+                        <span class="file-size">{{ formatFileSize(jdFile.size) }}</span>
+                      </div>
+                    </div>
+                    <el-icon class="delete-icon" @click.stop="clearFile('jd')">
+                      <component :is="'Close'" />
+                    </el-icon>
                   </div>
                 </div>
               </div>
               <div class="upload-col">
-                <div class="label-input-row">
-                  <label class="compact-label">
-                    上傳 Resume（格式：docx/txt）
-                  </label>
-                  <div class="file-input-group">
-                    <input ref="resumeInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'resume')" />
-                    <el-button size="small" class="file-btn" type="primary" @click="() => triggerFile('resume')">
-                      <el-icon style="margin-right: 4px;"><Upload /></el-icon>
-                      選擇檔案
-                    </el-button>
-                    <span class="file-name" :class="{ 'has-file': resumeFile }">
-                      {{ resumeFile?.name || '未選擇任何檔案' }}
-                    </span>
+                <label class="upload-label">上傳 Resume 文件</label>
+                <div class="file-upload-area" :class="{ 'has-file': resumeFile }" @click="triggerFile('resume')">
+                  <input ref="resumeInput" type="file" accept=".doc,.docx,.txt" class="hidden-input" @change="onFileChange($event, 'resume')" />
+                  <div v-if="!resumeFile" class="upload-placeholder">
+                    <el-icon class="upload-icon"><Upload /></el-icon>
+                    <span class="upload-hint">點擊選擇檔案</span>
+                    <span class="upload-format">docx / txt</span>
+                  </div>
+                  <div v-else class="file-preview" @click.stop>
+                    <div class="file-info">
+                      <span class="file-icon">📄</span>
+                      <div class="file-details">
+                        <span class="file-name-display">{{ resumeFile.name }}</span>
+                        <span class="file-size">{{ formatFileSize(resumeFile.size) }}</span>
+                      </div>
+                    </div>
+                    <el-icon class="delete-icon" @click.stop="clearFile('resume')">
+                      <component :is="'Close'" />
+                    </el-icon>
                   </div>
                 </div>
               </div>
@@ -150,7 +165,7 @@
 </template>
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Upload, DataAnalysis } from '@element-plus/icons-vue'
+import { Upload, DataAnalysis, Close } from '@element-plus/icons-vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import ChatMessage from '@/components/ChatMessage.vue'
 import { MODEL_OPTIONS } from '@/constants/models'
@@ -159,6 +174,11 @@ import { useNotifier } from '@/hooks/useNotifier'
 import { analyzeCsr } from '@/hooks/useCsrApi'
 import type { CsrApiResponse } from '@/types/csr'
 import type { ChatMessage as ChatMessageType } from '@/types/chat'
+
+// 設定組件名稱以支援 KeepAlive
+defineOptions({
+  name: 'CsrResumeView'
+})
 
 // 使用說明彈窗相關
 const GUIDE_STORAGE_KEY = 'csrresumeview-guide-shown'
@@ -193,9 +213,12 @@ const version = ref('1.1')
 const isAnalyzing = ref(false)
 const messages = ref<ChatMessageType[]>([])
 const messagesContainer = ref<HTMLElement | null>(null)
-const { scroll } = useScrollToBottom(messagesContainer)
+const { forceScroll, forceScrollToLatestMessage } = useScrollToBottom(messagesContainer)
 const { notifyError } = useNotifier()
 const canAnalyze = computed(() => !!jdFile.value && !!resumeFile.value)
+
+// 移除自動 watch，改為手動控制滾動時機
+
 function triggerFile(type: 'jd' | 'resume') { (type === 'jd' ? jdInput.value : resumeInput.value)?.click() }
 function onFileChange(e: Event, type: 'jd' | 'resume') {
   const input = e.target as HTMLInputElement
@@ -208,30 +231,57 @@ function onFileChange(e: Event, type: 'jd' | 'resume') {
   }
   if (type === 'jd') jdFile.value = file; else resumeFile.value = file
 }
+
+// 清除檔案
+function clearFile(type: 'jd' | 'resume') {
+  if (type === 'jd') {
+    jdFile.value = null
+    if (jdInput.value) jdInput.value.value = ''
+  } else {
+    resumeFile.value = null
+    if (resumeInput.value) resumeInput.value.value = ''
+  }
+}
+
+// 格式化檔案大小
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+// 清理 Markdown 代碼塊標記
+function cleanMarkdownCodeBlocks(text: string): string {
+  if (!text) return text
+  
+  // 移除各種代碼塊標記：```html, ```HTML, ```, 包含可能的換行
+  let cleaned = text.replace(/```html\s*/gi, '')
+  cleaned = cleaned.replace(/```HTML\s*/g, '')
+  cleaned = cleaned.replace(/```\s*/g, '')
+  
+  // 移除可能的前後空白
+  cleaned = cleaned.trim()
+  
+  return cleaned
+}
+
 async function startAnalyze() {
   if (!canAnalyze.value || !jdFile.value || !resumeFile.value) return
   isAnalyzing.value = true
 
-  // 使用者起始訊息
+  // 使用者起始訊息（美觀排版：JD、Resume、模型｜版本）
   messages.value.push({
     id: Date.now() + '-user',
     type: 'user',
     content: {
-      text: `開始分析\n模型：${model.value}｜版本：${version.value}\nJD：${jdFile.value.name}\nResume：${resumeFile.value.name}`,
+      text: `JD：${jdFile.value.name}\nResume：${resumeFile.value.name}\n模型：${model.value}｜版本：${version.value}`,
       files: []
     },
     timestamp: new Date()
   })
-
-  // AI 佔位訊息（稍後替換為 Answer）
-  const placeholderMsg: ChatMessageType = {
-    id: Date.now() + '-ai-answer',
-    type: 'ai',
-    content: { text: '分析中請稍候…', files: [], meta: {} },
-    timestamp: new Date()
-  }
-  messages.value.push(placeholderMsg)
-  scroll()
+  
+  // 用戶發送訊息 → 強制滾動
+  forceScroll()
 
   try {
     const data: CsrApiResponse = await analyzeCsr({
@@ -240,10 +290,24 @@ async function startAnalyze() {
       aiModel: model.value,
       appVersion: version.value
     })
-    // 1) Answer：僅顯示主要分析文字（支援 HTML）
-    const answerText = (data.answer && data.answer.trim().length) ? data.answer : '（無分析內容）'
-    placeholderMsg.content.text = answerText
-    placeholderMsg.content.meta = { isHtml: true, messageKind: 'answer' }
+    
+    // 1) Answer：僅顯示主要分析文字（支援 HTML，清理 Markdown 標記）
+    let answerText = (data.answer && data.answer.trim().length) ? data.answer : '（無分析內容）'
+    answerText = cleanMarkdownCodeBlocks(answerText)
+    
+    messages.value.push({
+      id: Date.now() + '-ai-answer',
+      type: 'ai',
+      content: { 
+        text: answerText, 
+        files: [], 
+        meta: { isHtml: true, messageKind: 'answer' } 
+      },
+      timestamp: new Date()
+    })
+    
+    // 情境 3：多段訊息 → 只滾動到第一段（answer）的開頭
+    forceScrollToLatestMessage()
 
     // 2) Result：獨立一則訊息；若缺則提示（直接展開，不折疊）
     if (data.result !== undefined && data.result !== null) {
@@ -272,9 +336,18 @@ async function startAnalyze() {
       })
     }
 
-    // 3) Usage & Info：原樣顯示（美化排版）
-    const usageLines = data.usage ? `Input tokens: ${data.usage.input_tokens ?? '-'}\nOutput tokens: ${data.usage.output_tokens ?? '-'}\nTotal cost: $${data.usage.total_cost ?? '-'}` : '（無使用量資訊）'
-    const infoLines = data.info ? `模型：${data.info.aiModel ?? model.value}\n版本：${data.info.appVersion ?? version.value}\nJD：${data.info.jd_file ?? jdFile.value.name}\nResume：${data.info.resume_file ?? resumeFile.value.name}` : '（無附加資訊）'
+    // 3) Usage & Info：
+    const formatUsd = (v: any) => {
+      const n = Number(v)
+      if (Number.isNaN(n)) return '$-'
+      return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 6, maximumFractionDigits: 6 })
+    }
+    const usageLines = data.usage
+      ? `Input tokens: ${data.usage.input_tokens ?? '-'}\nOutput tokens: ${data.usage.output_tokens ?? '-'}\nTotal cost: ${formatUsd(data.usage.total_cost)}`
+      : '（無使用量資訊）'
+    const infoLines = data.info
+      ? `模型：${data.info.aiModel ?? model.value}\n版本：${data.info.appVersion ?? version.value}\nJD：${data.info.jd_file ?? jdFile.value.name}\nResume：${data.info.resume_file ?? resumeFile.value.name}`
+      : '（無附加資訊）'
     messages.value.push({
       id: Date.now() + '-ai-usage-info',
       type: 'ai',
@@ -286,17 +359,18 @@ async function startAnalyze() {
       timestamp: new Date()
     })
   } catch (e: any) {
-    // 更新佔位為失敗簡述 + 推獨立錯誤訊息
-    placeholderMsg.content.text = '分析失敗'
+    // 推送錯誤訊息
     messages.value.push({
       id: Date.now() + '-ai-error',
       type: 'ai',
-      content: { text: `錯誤：${e?.message || e}`, files: [], meta: { messageKind: 'error' } },
+      content: { text: `分析失敗\n錯誤：${e?.message || e}`, files: [], meta: { messageKind: 'error' } },
       timestamp: new Date()
     })
+    
+    // 錯誤訊息也滾動
+    forceScroll()
   } finally {
     isAnalyzing.value = false
-    scroll()
   }
 }
 </script>
@@ -318,60 +392,307 @@ async function startAnalyze() {
 }
 
 .title { 
-  font-size: 17px; 
-  font-weight: 600; 
-  margin-bottom: 12px; 
+  font-size: 19px; 
+  font-weight: 500; 
+  margin: -12px -12px 16px -12px;
+  padding: 14px 16px;
   color: var(--text-color);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(249, 249, 249, 0.9));
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px 8px 0 0;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.title:hover {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(250, 250, 250, 0.95));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.title-icon {
+  font-size: 20px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.title-text {
+  font-weight: 500;
+  background: linear-gradient(135deg, #1d1d1f 0%, #424245 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 深色模式標題樣式 */
+:global(.dark) .title {
+  background: linear-gradient(to bottom, rgba(50, 50, 52, 0.7), rgba(44, 44, 46, 0.8));
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+:global(.dark) .title:hover {
+  background: linear-gradient(to bottom, rgba(55, 55, 57, 0.75), rgba(48, 48, 50, 0.85));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+:global(.dark) .title-text {
+  background: linear-gradient(135deg, #f5f5f7 0%, #d1d1d6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* 緊湊表單容器 */
 .compact-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 /* 主要區域並排容器 */
 .main-sections-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto;
-  gap: 14px;
+  gap: 12px;
   align-items: stretch;
 }
 
-/* 檔案上傳區段:帶背景區分 */
+/* 檔案上傳區段: macOS Sonoma 風格 */
 .upload-section {
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.04) 0%, rgba(100, 210, 255, 0.04) 100%);
-  border: 1px solid rgba(64, 158, 255, 0.15);
-  border-radius: 6px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(248, 248, 248, 0.7));
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
   padding: 12px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .upload-section:hover {
-  border-color: rgba(64, 158, 255, 0.25);
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.08);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7), rgba(250, 250, 250, 0.8));
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .upload-section {
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08) 0%, rgba(100, 210, 255, 0.08) 100%);
-  border-color: rgba(64, 158, 255, 0.2);
+  background: linear-gradient(to bottom, rgba(58, 58, 60, 0.6), rgba(48, 48, 50, 0.7));
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:global(.dark) .upload-section:hover {
+  background: linear-gradient(to bottom, rgba(62, 62, 64, 0.7), rgba(52, 52, 54, 0.8));
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 /* 檔案上傳區:橫向並排 */
 .upload-row {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   flex: 1;
 }
 
 .upload-col {
   display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.upload-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  letter-spacing: 0.1px;
+  opacity: 0.9;
+}
+
+/* 文件上傳區域 */
+.file-upload-area {
+  position: relative;
+  height: 75px;
+  border: 1.5px dashed rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-area:hover {
+  border-color: rgba(0, 122, 255, 0.4);
+  background: rgba(0, 122, 255, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.1);
+}
+
+.file-upload-area.has-file {
+  border-style: solid;
+  border-color: rgba(0, 122, 255, 0.3);
+  background: linear-gradient(to bottom, rgba(0, 122, 255, 0.06), rgba(0, 122, 255, 0.08));
+  cursor: default;
+}
+
+.file-upload-area.has-file:hover {
+  border-color: rgba(0, 122, 255, 0.4);
+  background: linear-gradient(to bottom, rgba(0, 122, 255, 0.08), rgba(0, 122, 255, 0.1));
+  transform: none;
+}
+
+:global(.dark) .file-upload-area {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:global(.dark) .file-upload-area:hover {
+  border-color: rgba(10, 132, 255, 0.5);
+  background: rgba(10, 132, 255, 0.08);
+  box-shadow: 0 2px 6px rgba(10, 132, 255, 0.2);
+}
+
+:global(.dark) .file-upload-area.has-file {
+  border-color: rgba(10, 132, 255, 0.4);
+  background: linear-gradient(to bottom, rgba(10, 132, 255, 0.1), rgba(10, 132, 255, 0.12));
+}
+
+:global(.dark) .file-upload-area.has-file:hover {
+  border-color: rgba(10, 132, 255, 0.5);
+  background: linear-gradient(to bottom, rgba(10, 132, 255, 0.12), rgba(10, 132, 255, 0.15));
+}
+
+/* 上傳佔位符 */
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+}
+
+.upload-icon {
+  font-size: 22px;
+  color: rgba(0, 122, 255, 0.6);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.file-upload-area:hover .upload-icon {
+  color: rgba(0, 122, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+.upload-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.upload-format {
+  font-size: 10px;
+  color: var(--text-color);
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+:global(.dark) .upload-icon {
+  color: rgba(10, 132, 255, 0.7);
+}
+
+:global(.dark) .file-upload-area:hover .upload-icon {
+  color: rgba(10, 132, 255, 0.9);
+}
+
+/* 文件預覽 */
+.file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
   gap: 8px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.file-name-display {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size {
+  font-size: 10px;
+  color: var(--text-color);
+  opacity: 0.6;
+}
+
+.delete-icon {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.delete-icon:hover {
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.1);
+  transform: scale(1.1);
+}
+
+:global(.dark) .delete-icon {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+:global(.dark) .delete-icon:hover {
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.15);
+}
+
+.hidden-input {
+  display: none;
 }
 
 /* Label 和輸入控件橫向排列 */
@@ -381,38 +702,54 @@ async function startAnalyze() {
   gap: 12px;
 }
 
-/* 選擇器區段：帶背景區分 */
+/* 選擇器區段: macOS Sonoma 風格 */
 .selector-section {
-  background: linear-gradient(135deg, rgba(103, 194, 58, 0.04) 0%, rgba(103, 194, 58, 0.04) 100%);
-  border: 1px solid rgba(103, 194, 58, 0.15);
-  border-radius: 6px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(248, 248, 248, 0.7));
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
   padding: 12px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .selector-section:hover {
-  border-color: rgba(103, 194, 58, 0.25);
-  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.08);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.7), rgba(250, 250, 250, 0.8));
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform: translateY(-1px);
 }
 
 :global(.dark) .selector-section {
-  background: linear-gradient(135deg, rgba(103, 194, 58, 0.08) 0%, rgba(103, 194, 58, 0.08) 100%);
-  border-color: rgba(103, 194, 58, 0.2);
+  background: linear-gradient(to bottom, rgba(58, 58, 60, 0.6), rgba(48, 48, 50, 0.7));
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:global(.dark) .selector-section:hover {
+  background: linear-gradient(to bottom, rgba(62, 62, 64, 0.7), rgba(52, 52, 54, 0.8));
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .selector-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
 }
 
 .selector-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .compact-label {
@@ -422,66 +759,15 @@ async function startAnalyze() {
   display: flex;
   align-items: center;
   gap: 6px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.1px;
   white-space: nowrap;
   min-width: fit-content;
+  opacity: 0.9;
 }
 
 .label-icon {
   font-size: 16px;
   line-height: 1;
-}
-
-.file-input-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.hidden-input { 
-  display: none; 
-}
-
-.file-btn {
-  --el-button-bg-color: var(--button-bg);
-  --el-button-hover-bg-color: var(--el-color-primary-dark-2);
-  --el-button-active-bg-color: var(--el-color-primary);
-  --el-button-text-color: #fff;
-  --el-button-hover-text-color: #fff;
-  --el-button-active-text-color: #fff;
-  flex-shrink: 0;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.15);
-}
-
-.file-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(64, 158, 255, 0.25);
-}
-
-.file-btn:active {
-  transform: translateY(0);
-}
-
-.file-name { 
-  font-size: 12px;
-  color: var(--text-color);
-  opacity: 0.6; 
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-  transition: all 0.3s ease;
-}
-
-.file-name.has-file {
-  opacity: 0.95;
-  color: var(--el-color-success);
-  font-weight: 500;
 }
 
 .version-select { 
@@ -496,24 +782,59 @@ async function startAnalyze() {
   justify-content: center;
 }
 
+/* macOS Sonoma 主要操作按鈕 */
 .analyze-btn {
   min-width: 140px;
   height: 44px;
   font-size: 15px;
-  font-weight: 600;
-  padding: 0 20px;
-  box-shadow: 0 3px 6px rgba(64, 158, 255, 0.2);
-  transition: all 0.3s ease;
+  font-weight: 500;
+  padding: 0 24px;
+  border-radius: 10px;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  background: linear-gradient(to bottom, #007AFF 0%, #0070F5 100%);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  letter-spacing: 0.2px;
 }
 
 .analyze-btn:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(64, 158, 255, 0.3);
+  background: linear-gradient(to bottom, #0A84FF 0%, #0A7AFF 100%);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.35),
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
 }
 
 .analyze-btn:active {
+  background: linear-gradient(to bottom, #0066EB 0%, #005CE1 100%);
+  box-shadow: 0 1px 4px rgba(0, 122, 255, 0.2),
+              inset 0 1px 2px rgba(0, 0, 0, 0.1);
   transform: translateY(0);
+}
+
+.analyze-btn:disabled {
+  background: linear-gradient(to bottom, rgba(174, 174, 178, 0.3), rgba(174, 174, 178, 0.25));
+  box-shadow: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+:global(.dark) .analyze-btn {
+  background: linear-gradient(to bottom, #0A84FF 0%, #0070F5 100%);
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+:global(.dark) .analyze-btn:not(:disabled):hover {
+  background: linear-gradient(to bottom, #1A94FF 0%, #1080FF 100%);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+:global(.dark) .analyze-btn:disabled {
+  background: linear-gradient(to bottom, rgba(99, 99, 102, 0.3), rgba(99, 99, 102, 0.25));
 }
 
 /* 聊天卡片 */
@@ -597,23 +918,6 @@ async function startAnalyze() {
     width: 100%;
     min-height: 48px;
   }
-}
-
-/* 深色模式特殊處理 */
-:global(.dark) .file-btn {
-  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
-}
-
-:global(.dark) .file-btn:hover {
-  box-shadow: 0 4px 8px rgba(64, 158, 255, 0.4);
-}
-
-:global(.dark) .analyze-btn {
-  box-shadow: 0 3px 6px rgba(64, 158, 255, 0.35);
-}
-
-:global(.dark) .analyze-btn:not(:disabled):hover {
-  box-shadow: 0 6px 12px rgba(64, 158, 255, 0.45);
 }
 
 /* 使用說明彈窗樣式 */
@@ -783,5 +1087,13 @@ async function startAnalyze() {
 :global(.dark) .step-card:hover {
   border-color: rgba(64, 158, 255, 0.45);
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
+}
+
+/* 響應式佈局 */
+@media (max-width: 768px) {
+  .upload-row,
+  .selector-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

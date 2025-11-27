@@ -15,7 +15,7 @@
       <el-button type="primary" @click="handleSend" :disabled="!canSend" circle class="send-btn-inside" :title="'發送訊息'">
         <Promotion />
       </el-button>
-    </div>
+      
 
     <div v-if="files.length" class="file-preview-list">
       <div v-for="file in files" :key="file.id" class="file-preview-item" :title="file.name">
@@ -39,7 +39,9 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="期限/期數">
-                <el-input v-model="dataForm.term" placeholder="請輸入期限" />
+                <el-select v-model="dataForm.term" placeholder="選擇期數" filterable style="width: 100%">
+                  <el-option v-for="opt in termOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
@@ -60,12 +62,16 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="貸款等級">
-                <el-input v-model="dataForm.grade" placeholder="請輸入貸款等級" />
+                <el-select v-model="dataForm.grade" placeholder="選擇等級 (A~G)" filterable style="width: 100%">
+                  <el-option v-for="opt in gradeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="貸款子等級">
-                <el-input v-model="dataForm.sub_grade" placeholder="請輸入貸款子等級" />
+                <el-select v-model="dataForm.sub_grade" placeholder="選擇子等級" filterable style="width: 100%">
+                  <el-option v-for="opt in subGradeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
@@ -77,8 +83,8 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="職位長度">
-                <el-input v-model="dataForm.emp_length" placeholder="請輸入職位長度" />
+              <el-form-item label="職位年資">
+                <el-input v-model="dataForm.emp_length" placeholder="僅輸入數字或 10+ / <1" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -86,7 +92,9 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="房屋所有權">
-                <el-input v-model="dataForm.home_ownership" placeholder="請輸入房屋所有權" />
+                <el-select v-model="dataForm.home_ownership" placeholder="選擇房屋狀態" filterable style="width: 100%">
+                  <el-option v-for="opt in homeOwnershipOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
@@ -99,25 +107,38 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="驗證狀態">
-                <el-input v-model="dataForm.verification_status" placeholder="請輸入驗證狀態" />
+                <el-select v-model="dataForm.verification_status" placeholder="選擇驗證狀態" filterable style="width: 100%">
+                  <el-option v-for="opt in verificationStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="核發日期">
-                <el-input v-model="dataForm.issue_d" placeholder="請輸入核發日期" />
+              <el-form-item label="核發月份">
+                <el-date-picker
+                  v-model="issueMonth"
+                  type="month"
+                  placeholder="選擇月份"
+                  format="YYYY-MM"
+                  value-format="YYYY-MM"
+                  style="width: 100%;"
+                />
               </el-form-item>
             </el-col>
           </el-row>
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="貸款狀態">
-                <el-input v-model="dataForm.loan_status" placeholder="請輸入貸款狀態" />
+              <el-form-item label="申請類型">
+                <el-select v-model="dataForm.application_type" placeholder="選擇申請類型" filterable style="width: 100%">
+                  <el-option v-for="opt in applicationTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="目的">
-                <el-input v-model="dataForm.purpose" placeholder="請輸入目的" />
+                <el-select v-model="dataForm.purpose" placeholder="選擇用途" filterable style="width: 100%">
+                  <el-option v-for="opt in purposeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
           </el-row>
@@ -129,8 +150,15 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="最早信用紀錄日期">
-                <el-input v-model="dataForm.earliest_cr_line" placeholder="請輸入最早信用紀錄日期" />
+              <el-form-item label="最早信用紀錄月份">
+                <el-date-picker
+                  v-model="earliestCrLineMonth"
+                  type="month"
+                  placeholder="選擇月份"
+                  format="YYYY-MM"
+                  value-format="YYYY-MM"
+                  style="width: 100%;"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -173,6 +201,9 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dataDialogVisible = false">關閉</el-button>
+          <el-button type="primary" @click="handleApplyForm">
+            套用此表單
+          </el-button>
           <el-button type="primary" @click="handleDataGenerate">
             <el-icon style="margin-right: 4px;"><DataAnalysis /></el-icon>
             數據生成
@@ -180,6 +211,7 @@
         </div>
       </template>
     </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -192,6 +224,16 @@ import { useFileUploads } from '@/hooks/useFileUploads'
 import { useModelSelection } from '@/hooks/useModelSelection'
 import { ElMessage } from 'element-plus'
 import type { LoanInput } from '@/types/api'
+import {
+  TERM_OPTIONS,
+  GRADE_OPTIONS,
+  SUB_GRADE_OPTIONS,
+  HOME_OWNERSHIP_OPTIONS,
+  VERIFICATION_STATUS_OPTIONS,
+  PURPOSE_OPTIONS,
+  buildSubGradeOptionsByGrade,
+  APPLICATION_TYPE_OPTIONS
+} from '@/constants/lendingEnums'
 
 export default {
   name: 'ChatInput',
@@ -230,6 +272,36 @@ export default {
       pub_rec_bankruptcies: '',
       application_type: ''
     })
+
+    // 下拉選單資料
+    const termOptions = TERM_OPTIONS
+    const gradeOptions = GRADE_OPTIONS
+    const homeOwnershipOptions = HOME_OWNERSHIP_OPTIONS
+    const verificationStatusOptions = VERIFICATION_STATUS_OPTIONS
+    const purposeOptions = PURPOSE_OPTIONS
+    const applicationTypeOptions = APPLICATION_TYPE_OPTIONS
+    const subGradeOptions = computed(() => buildSubGradeOptionsByGrade(dataForm.grade))
+    // 月份選擇暫存（YYYY-MM）
+    const earliestCrLineMonth = ref('')
+    const issueMonth = ref('')
+
+    const monthAbbrevs = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const
+    const formatToMonYY = (ym: string): string => {
+      if (!ym) return ''
+      const [y,m] = ym.split('-')
+      const year2 = y.slice(-2)
+      const idx = parseInt(m,10)-1
+      return `${monthAbbrevs[idx]}-${year2}`
+    }
+    const normalizeEmpLength = (raw: string): string => {
+      const v = raw.trim()
+      if (!v) return ''
+      if (v === '<1' || v === '<1 year') return '<1 year'
+      if (v.endsWith('+')) return `${v} years`
+      if (/^\d+$/.test(v)) return `${v} years`
+      // 若已含 year(s) 直接返回
+      return v.includes('year') ? v : `${v} years`
+    }
     
     // 範例數據
     const sampleData = [
@@ -354,7 +426,7 @@ export default {
       dataDialogVisible.value = true
     }
     
-    const handleDataGenerate = () => {
+  const handleDataGenerate = () => {
       console.log('=== handleDataGenerate 被調用 ===')
       
       // 隨機選擇一筆範例數據
@@ -373,11 +445,14 @@ export default {
       dataForm.home_ownership = randomSample.home_ownership
       dataForm.annual_inc = randomSample.annual_inc
       dataForm.verification_status = randomSample.verification_status
-      dataForm.issue_d = ''
+  dataForm.issue_d = ''
       dataForm.loan_status = ''
       dataForm.purpose = randomSample.purpose
       dataForm.dti = randomSample.dti
-      dataForm.earliest_cr_line = randomSample.earliest_cr_line
+  // 樣本 earliest_cr_line 若為 Oct-1999 轉 Mon-YY => Oct-99
+  dataForm.earliest_cr_line = randomSample.earliest_cr_line.replace(/-(\d{4})$/, (m) => '-' + m.slice(-2))
+  earliestCrLineMonth.value = ''
+  issueMonth.value = ''
       dataForm.open_acc = randomSample.open_acc
       dataForm.pub_rec = randomSample.pub_rec
       dataForm.revol_bal = randomSample.revol_bal
@@ -389,6 +464,11 @@ export default {
       dataForm.address = ''
       
       // 準備 LoanInput 格式並通知父組件
+      // 正規化 application_type（樣本可能為 'Individual'）
+      const normalizedAppType = ((): string => {
+        const v = String(randomSample.application_type || '').toUpperCase()
+        return v === 'INDIVIDUAL' || v === 'JOINT' ? v : 'INDIVIDUAL'
+      })()
       const loanInput: LoanInput = {
         loan_amnt: Number(randomSample.loan_amnt),
         int_rate: Number(randomSample.int_rate),
@@ -403,14 +483,15 @@ export default {
         total_acc: parseInt(randomSample.total_acc),
         mort_acc: parseInt(randomSample.mort_acc),
         pub_rec_bankruptcies: parseInt(randomSample.pub_rec_bankruptcies),
-        earliest_cr_line: randomSample.earliest_cr_line,
+        earliest_cr_line: dataForm.earliest_cr_line,
         term: randomSample.term,
         grade: randomSample.sub_grade.charAt(0),
         emp_length: '5 years',
         home_ownership: randomSample.home_ownership,
         verification_status: randomSample.verification_status,
         purpose: randomSample.purpose,
-        application_type: randomSample.application_type
+        application_type: normalizedAppType,
+        issue_d: undefined
       }
       
       // 發送 form-data-update 事件給父組件
@@ -421,6 +502,96 @@ export default {
       console.log('準備發送的 LoanInput:', loanInput)
       
       ElMessage.success('數據已生成!')
+    }
+
+    // 依目前表單值組裝 LoanInput 並送出（值以 API 需要的 value 為準，label 僅供顯示）
+    const handleApplyForm = () => {
+      // 基本檢核與轉型
+  const toNum = (v: string) => Number(String(v).trim())
+      const toInt = (v: string) => parseInt(String(v).trim(), 10)
+
+      const requiredStrings: Array<[string, string]> = [
+        ['term', dataForm.term],
+        ['grade', dataForm.grade],
+        ['sub_grade', dataForm.sub_grade],
+        ['emp_length', dataForm.emp_length],
+        ['home_ownership', dataForm.home_ownership],
+        ['verification_status', dataForm.verification_status],
+        ['earliest_cr_line', dataForm.earliest_cr_line],
+        ['purpose', dataForm.purpose],
+        ['application_type', dataForm.application_type],
+      ]
+
+      const requiredNumbers: Array<[string, number]> = [
+        ['loan_amnt', toNum(dataForm.loan_amnt)],
+        ['int_rate', toNum(dataForm.int_rate)],
+        ['installment', toNum(dataForm.installment)],
+        ['annual_inc', toNum(dataForm.annual_inc)],
+        ['dti', toNum(dataForm.dti)],
+        ['open_acc', toInt(dataForm.open_acc)],
+        ['pub_rec', toInt(dataForm.pub_rec)],
+        ['revol_bal', toNum(dataForm.revol_bal)],
+        ['revol_util', toNum(dataForm.revol_util)],
+        ['total_acc', toInt(dataForm.total_acc)],
+        ['mort_acc', toInt(dataForm.mort_acc)],
+        ['pub_rec_bankruptcies', toInt(dataForm.pub_rec_bankruptcies)],
+      ]
+
+      // 檢核必填字串
+      const missing = requiredStrings.find(([k, v]) => !String(v || '').trim())
+      if (missing) {
+        ElMessage.error(`請填寫必要欄位：${missing[0]}`)
+        return
+      }
+      // 檢核數字
+      const invalidNum = requiredNumbers.find(([k, n]) => Number.isNaN(n))
+      if (invalidNum) {
+        ElMessage.error(`數值欄位格式錯誤：${invalidNum[0]}`)
+        return
+      }
+
+      // 若使用月份選擇覆蓋原文字輸入
+      if (earliestCrLineMonth.value) {
+        dataForm.earliest_cr_line = formatToMonYY(earliestCrLineMonth.value)
+      }
+      if (issueMonth.value) {
+        dataForm.issue_d = formatToMonYY(issueMonth.value)
+      }
+      // 正規化職位年資
+      dataForm.emp_length = normalizeEmpLength(dataForm.emp_length)
+      // 正規化申請類型（確保送出為大寫值）
+      if (dataForm.application_type) {
+        dataForm.application_type = String(dataForm.application_type).toUpperCase()
+      }
+
+      const loanInput: LoanInput = {
+        loan_amnt: requiredNumbers.find(([k]) => k === 'loan_amnt')![1],
+        int_rate: requiredNumbers.find(([k]) => k === 'int_rate')![1],
+        installment: requiredNumbers.find(([k]) => k === 'installment')![1],
+        sub_grade: dataForm.sub_grade,
+        annual_inc: requiredNumbers.find(([k]) => k === 'annual_inc')![1],
+        dti: requiredNumbers.find(([k]) => k === 'dti')![1],
+        open_acc: requiredNumbers.find(([k]) => k === 'open_acc')![1] as number,
+        pub_rec: requiredNumbers.find(([k]) => k === 'pub_rec')![1] as number,
+        revol_bal: requiredNumbers.find(([k]) => k === 'revol_bal')![1],
+        revol_util: requiredNumbers.find(([k]) => k === 'revol_util')![1],
+        total_acc: requiredNumbers.find(([k]) => k === 'total_acc')![1] as number,
+        mort_acc: requiredNumbers.find(([k]) => k === 'mort_acc')![1] as number,
+        pub_rec_bankruptcies: requiredNumbers.find(([k]) => k === 'pub_rec_bankruptcies')![1] as number,
+        earliest_cr_line: String(dataForm.earliest_cr_line).trim(),
+        term: dataForm.term,
+        grade: dataForm.grade,
+        emp_length: dataForm.emp_length,
+        home_ownership: dataForm.home_ownership,
+        verification_status: dataForm.verification_status,
+        purpose: dataForm.purpose,
+        application_type: dataForm.application_type,
+        issue_d: dataForm.issue_d || undefined
+      }
+
+      emit('form-data-update', loanInput)
+      ElMessage.success('已套用目前表單內容')
+      dataDialogVisible.value = false
     }
     
     // 檔案處理抽象
@@ -443,10 +614,13 @@ export default {
   const handleModelChange = (model: string) => { setModel(model) }
   // 初始模型通知（保險同步一次）
   emit('model-change', selectedModel.value)
-    return { 
+      return { 
       theme, text, files, fileInput, selectedModel, modelOptions, 
       triggerFileInput, handleFileChange, removeFile, handleSend, handleModelChange, canSend, isImage,
-      dataDialogVisible, dataForm, openDataDialog, handleDataGenerate
+      dataDialogVisible, dataForm, openDataDialog, handleDataGenerate,
+      termOptions, gradeOptions, homeOwnershipOptions, verificationStatusOptions, purposeOptions, subGradeOptions, applicationTypeOptions,
+      earliestCrLineMonth, issueMonth,
+      handleApplyForm
     }
   }
 }
