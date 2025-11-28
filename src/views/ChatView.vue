@@ -464,25 +464,6 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
   background-clip: text;
 }
 
-/* 深色模式標題樣式 */
-:global(.dark) .title {
-  background: linear-gradient(to bottom, rgba(50, 50, 52, 0.7), rgba(44, 44, 46, 0.8));
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-:global(.dark) .title:hover {
-  background: linear-gradient(to bottom, rgba(55, 55, 57, 0.75), rgba(48, 48, 50, 0.85));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-:global(.dark) .title-text {
-  background: linear-gradient(135deg, #f5f5f7 0%, #d1d1d6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 .messages-container { 
   flex: 1;
   overflow-y: auto; 
@@ -688,20 +669,6 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
     transform: translateY(0);
   }
 }
-
-/* 深色模式優化 */
-:global(.dark) .guide-content {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(147, 51, 234, 0.1) 100%);
-}
-
-:global(.dark) .step-card {
-  border-color: rgba(124, 58, 237, 0.25);
-}
-
-:global(.dark) .step-card:hover {
-  border-color: rgba(124, 58, 237, 0.45);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
-}
 </style>
 <style scoped>
 /* 授信審查資訊 Dialog 樣式優化（macOS 風格） */
@@ -731,9 +698,5 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
 }
 :deep(.el-descriptions__label){
   font-weight: 500;
-}
-:global(.dark) :deep(.snapshot-dialog .el-dialog__header){
-  background: linear-gradient(to bottom, rgba(50,50,52,0.7), rgba(44,44,46,0.82));
-  border-bottom-color: rgba(255,255,255,0.12);
 }
 </style>

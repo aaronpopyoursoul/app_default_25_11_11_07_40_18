@@ -416,25 +416,6 @@ async function startAnalyze() {
   background-clip: text;
 }
 
-/* 深色模式標題樣式 */
-:global(.dark) .title {
-  background: linear-gradient(to bottom, rgba(50, 50, 52, 0.7), rgba(44, 44, 46, 0.8));
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-:global(.dark) .title:hover {
-  background: linear-gradient(to bottom, rgba(55, 55, 57, 0.75), rgba(48, 48, 50, 0.85));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-:global(.dark) .title-text {
-  background: linear-gradient(135deg, #f5f5f7 0%, #d1d1d6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 /* 緊湊表單容器 */
 .compact-form {
   display: flex;
@@ -480,20 +461,6 @@ async function startAnalyze() {
   transform: translateY(-1px);
 }
 
-:global(.dark) .upload-section {
-  background: linear-gradient(to bottom, rgba(58, 58, 60, 0.6), rgba(48, 48, 50, 0.7));
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-:global(.dark) .upload-section:hover {
-  background: linear-gradient(to bottom, rgba(62, 62, 64, 0.7), rgba(52, 52, 54, 0.8));
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
 /* 檔案上傳區:JD 與 Resume 橫向並排 */
 .upload-row {
   display: flex;
@@ -537,27 +504,6 @@ async function startAnalyze() {
   transform: none;
 }
 
-:global(.dark) .file-upload-area {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-:global(.dark) .file-upload-area:hover {
-  border-color: rgba(10, 132, 255, 0.5);
-  background: rgba(10, 132, 255, 0.08);
-  box-shadow: 0 2px 6px rgba(10, 132, 255, 0.2);
-}
-
-:global(.dark) .file-upload-area.has-file {
-  border-color: rgba(10, 132, 255, 0.4);
-  background: linear-gradient(to bottom, rgba(10, 132, 255, 0.1), rgba(10, 132, 255, 0.12));
-}
-
-:global(.dark) .file-upload-area.has-file:hover {
-  border-color: rgba(10, 132, 255, 0.5);
-  background: linear-gradient(to bottom, rgba(10, 132, 255, 0.12), rgba(10, 132, 255, 0.15));
-}
-
 /* 上傳佔位符：緊湊化 */
 .upload-placeholder {
   display: flex;
@@ -581,16 +527,6 @@ async function startAnalyze() {
   font-weight: 500;
   color: var(--text-color);
   opacity: 0.7;
-}
-
-/* 移除 upload-format */
-
-:global(.dark) .upload-icon {
-  color: rgba(10, 132, 255, 0.7);
-}
-
-:global(.dark) .file-upload-area:hover .upload-icon {
-  color: rgba(10, 132, 255, 0.9);
 }
 
 /* 文件預覽：緊湊化 */
@@ -657,15 +593,6 @@ async function startAnalyze() {
   transform: scale(1.1);
 }
 
-:global(.dark) .delete-icon {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-:global(.dark) .delete-icon:hover {
-  color: #ff453a;
-  background: rgba(255, 69, 58, 0.15);
-}
-
 .hidden-input {
   display: none;
 }
@@ -708,20 +635,6 @@ async function startAnalyze() {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06),
               inset 0 1px 0 rgba(255, 255, 255, 0.9);
   transform: translateY(-1px);
-}
-
-:global(.dark) .selector-section {
-  background: linear-gradient(to bottom, rgba(58, 58, 60, 0.6), rgba(48, 48, 50, 0.7));
-  border: 0.5px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-:global(.dark) .selector-section:hover {
-  background: linear-gradient(to bottom, rgba(62, 62, 64, 0.7), rgba(52, 52, 54, 0.8));
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .selector-row {
@@ -809,23 +722,6 @@ async function startAnalyze() {
   box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-:global(.dark) .analyze-btn {
-  background: linear-gradient(to bottom, #0A84FF 0%, #0070F5 100%);
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4),
-              inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-:global(.dark) .analyze-btn:not(:disabled):hover {
-  background: linear-gradient(to bottom, #1A94FF 0%, #1080FF 100%);
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-:global(.dark) .analyze-btn:disabled {
-  background: linear-gradient(to bottom, rgba(99, 99, 102, 0.3), rgba(99, 99, 102, 0.25));
 }
 
 /* 聊天卡片 */
@@ -1062,20 +958,6 @@ async function startAnalyze() {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* 深色模式優化 */
-:global(.dark) .guide-content {
-  background: linear-gradient(135deg, rgba(64, 158, 255, 0.08) 0%, rgba(100, 210, 255, 0.1) 100%);
-}
-
-:global(.dark) .step-card {
-  border-color: rgba(64, 158, 255, 0.25);
-}
-
-:global(.dark) .step-card:hover {
-  border-color: rgba(64, 158, 255, 0.45);
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.25);
 }
 
 /* 響應式佈局 */

@@ -1,6 +1,6 @@
 <!-- moved copy for src structure -->
 <template>
-  <div class="chat-input-container" :class="theme">
+  <div class="chat-input-container">
     <div class="input-wrapper">
       <input type="file" ref="fileInput" class="file-input" multiple accept=".csv,text/csv" @change="handleFileChange" />
       <!-- <el-button type="primary" @click="triggerFileInput" circle class="upload-btn-inside" :title="'上傳 CSV 檔案'">
@@ -240,7 +240,6 @@ export default {
   components: { Paperclip, Delete, Promotion, ChatDotRound, Lightning, Cpu, ArrowDown, Check, DataAnalysis, ModelSelector },
   emits: ['send', 'model-change', 'form-data-update'],
   setup(_: unknown, { emit }) {
-    const theme = inject('theme', 'light') as 'light' | 'dark'
     const text = ref('')
     
     // 數據生成 Dialog
@@ -615,7 +614,7 @@ export default {
   // 初始模型通知（保險同步一次）
   emit('model-change', selectedModel.value)
       return { 
-      theme, text, files, fileInput, selectedModel, modelOptions, 
+      text, files, fileInput, selectedModel, modelOptions, 
       triggerFileInput, handleFileChange, removeFile, handleSend, handleModelChange, canSend, isImage,
       dataDialogVisible, dataForm, openDataDialog, handleDataGenerate,
       termOptions, gradeOptions, homeOwnershipOptions, verificationStatusOptions, purposeOptions, subGradeOptions, applicationTypeOptions,
@@ -635,12 +634,9 @@ export default {
 .upload-btn-inside:hover:not(:disabled) { filter: brightness(1.12); }
 .upload-btn-inside:active:not(:disabled) { filter: brightness(0.92); }
 .input-textarea :deep(.el-textarea__inner) { border-radius: 20px; background-color: var(--card-bg); color: var(--text-color); box-shadow: 0 0 0 1px var(--border-color); padding-left: 20px; padding-right: 240px; transition: box-shadow .25s ease, background-color .35s ease, color .35s ease; }
-.dark .input-textarea :deep(.el-textarea__inner) { background-color: var(--ai-msg-bg); box-shadow: none; }
 .input-textarea :deep(.el-textarea__inner::placeholder) { color: rgba(0,0,0,0.35); }
-.dark .input-textarea :deep(.el-textarea__inner::placeholder) { color: rgba(255,255,255,0.35); }
 .input-textarea :deep(.el-textarea__inner:focus) { box-shadow: 0 0 0 1px var(--el-color-primary), 0 0 0 3px rgba(124,58,237,0.35); }
 .input-textarea :deep(.el-input__count) { color: rgba(0, 0, 0, 0.5); font-size: 12px; background: transparent; transition: color .35s ease; }
-.dark .input-textarea :deep(.el-input__count) { color: rgba(255, 255, 255, 0.55); }
 .send-btn-inside { position: absolute; right: 20px; top: 50%; transform: translateY(-50%) translateY(-8px); min-width: 32px; width: 32px; height: 32px; font-size: 1rem; z-index: 1; --el-button-bg-color: var(--button-bg); --el-button-hover-bg-color: var(--el-color-primary-dark-2); --el-button-active-bg-color: var(--el-color-primary); transition: background-color .25s ease, filter .25s ease; padding: 0; }
 .send-btn-inside:disabled { opacity: 0.55; cursor: not-allowed; filter: grayscale(0.25); }
 .send-btn-inside:not(:disabled):hover { filter: brightness(1.12); }

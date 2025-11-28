@@ -81,7 +81,7 @@
       </div>
       <div v-if="message.content.meta?.formSnapshotId" class="form-snapshot-link">
         <button class="snapshot-link-btn" @click="emitShowForm(message.content.meta.formSnapshotId)">
-          <span class="link-icon">🔎</span> 查看表單
+            查看表單
         </button>
       </div>
       <div class="timestamp">{{ formattedTimestamp }}</div>
@@ -336,7 +336,6 @@ export default defineComponent({
 :deep(.html-content strong){ font-weight:600; color:var(--text-color); }
 :deep(.html-content em){ font-style:italic; }
 :deep(.html-content code){ background:rgba(0,0,0,.08); padding:2px 6px; border-radius:3px; font-family:monospace; font-size:0.9em; }
-:global(.dark) :deep(.html-content code){ background:rgba(255,255,255,.12); }
 
 /* Formatted content styling - 處理 Markdown-like 格式 */
 :deep(.formatted-content){ line-height:1.7; color:var(--text-color); }
@@ -351,9 +350,6 @@ export default defineComponent({
   font-size:1.05em; 
   color:var(--el-color-primary); 
   letter-spacing:0.3px;
-}
-:global(.dark) :deep(.text-highlight){ 
-  color:var(--el-color-primary-light-3); 
 }
 
 /* 列表樣式 */
@@ -380,14 +376,6 @@ export default defineComponent({
   background:rgba(0,0,0,.06); 
 }
 
-:global(.dark) :deep(.formatted-list li){ 
-  background:rgba(255,255,255,.05); 
-}
-
-:global(.dark) :deep(.formatted-list li:hover){ 
-  background:rgba(255,255,255,.08); 
-}
-
 /* 編號列表項目 */
 :deep(.numbered-item){ 
   display:flex; 
@@ -400,10 +388,6 @@ export default defineComponent({
   color:var(--el-color-primary); 
   min-width:24px;
   flex-shrink:0;
-}
-
-:global(.dark) :deep(.item-number){ 
-  color:var(--el-color-primary-light-3); 
 }
 
 /* 無序列表項目 */
@@ -425,17 +409,12 @@ export default defineComponent({
   user-select:none;
 }
 
-:global(.dark) :deep(.bullet-item::before){ 
-  color:var(--el-color-primary-light-3); 
-}
-
 /* Result table styling */
 :deep(.result-data-table){ width:100%; border-collapse:collapse; margin:8px 0; font-size:13px; background:var(--card-bg); border-radius:6px; overflow:hidden; }
 :deep(.result-data-table th){ background:var(--el-color-primary-light-8); color:var(--text-color); padding:8px; text-align:left; font-weight:600; border-bottom:2px solid var(--border-color); }
 :deep(.result-data-table td){ padding:6px 8px; border-bottom:1px solid var(--border-color); color:var(--text-color); }
 :deep(.result-data-table tr:last-child td){ border-bottom:none; }
 :deep(.result-data-table tr:hover){ background:rgba(0,0,0,.03); }
-:global(.dark) :deep(.result-data-table tr:hover){ background:rgba(255,255,255,.05); }
 
 /* Usage info grid styling */
 :deep(.usage-info-grid){ display:flex; flex-direction:column; gap:6px; margin:4px 0; }
@@ -446,8 +425,6 @@ export default defineComponent({
 :deep(.usage-info-grid .section-divider){ margin:8px 0; border:none; border-top:1px solid var(--border-color); }
 :deep(.usage-info-grid .info-line){ color:var(--text-color); font-size:13px; padding:2px 0; }
 
-:global(.dark) .chat-bubble{ box-shadow:0 1px 3px rgba(0,0,0,.6); }
-:global(.dark) .file-preview-name{ background:rgba(255,255,255,.12); }
 @keyframes bubbleIn{ 0%{ opacity:0; transform: translateY(4px);} 100%{ opacity:1; transform: translateY(0);} }
 
 /* Prediction Card 樣式 */
@@ -458,11 +435,6 @@ export default defineComponent({
   border-radius: 12px;
   overflow: hidden;
   animation: slideIn 0.4s ease;
-}
-
-:global(.dark) .prediction-card {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(147, 51, 234, 0.1) 100%);
-  border-color: rgba(124, 58, 237, 0.3);
 }
 
 .prediction-header {
@@ -611,18 +583,12 @@ export default defineComponent({
   transition: all 0.2s ease;
 }
 
-:global(.dark) .shap-feature-item {
-  background: rgba(0, 0, 0, 0.2);
-}
 
 .shap-feature-item:hover {
   background: rgba(124, 58, 237, 0.08);
   transform: translateX(4px);
 }
 
-:global(.dark) .shap-feature-item:hover {
-  background: rgba(124, 58, 237, 0.15);
-}
 
 .feature-rank {
   width: 28px;

@@ -16,10 +16,10 @@
         <el-icon class="menu-icon"><User /></el-icon>
         <span v-show="menuOpened" class="menu-label">CSR 智能履歷評估</span>
       </el-menu-item>
-      <el-menu-item index="/blank">
+      <!-- <el-menu-item index="/blank">
         <el-icon class="menu-icon"><More /></el-icon>
         <span v-show="menuOpened" class="menu-label">blank page</span>
-      </el-menu-item>
+      </el-menu-item> -->
     </el-menu>
 
     <div :class="['user-info', { 'user-info-collapsed': !menuOpened }]">
