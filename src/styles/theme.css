@@ -1,27 +1,52 @@
 :root {
-  --background-color: #f0f2f5;
-  --text-color: #333333;
-  --text-secondary: rgba(0, 0, 0, 0.55);
+  /* macOS 系統配色 */
+  --macos-blue: #007AFF;
+  --macos-blue-light: #5AC8FA;
+  --macos-gray-1: #F5F5F7;
+  --macos-gray-2: #E8E8ED;
+  --macos-gray-3: #D1D1D6;
+  --macos-gray-4: #8E8E93;
+  --macos-gray-5: #636366;
+  --macos-gray-6: #48484A;
+  
+  /* 主色系 */
+  --primary-color: var(--macos-blue);
+  --background-color: #F5F5F7;
+  --text-color: #1D1D1F;
+  --text-secondary: rgba(60, 60, 67, 0.6);
   --card-bg: #ffffff;
-  --user-msg-bg: #dcf8c6;
-  --ai-msg-bg: #e3e3e3;
-  --button-bg: #409eff;
-  --scrollbar-thumb: #c0c0c0;
-
-  /* Layout-specific variables used by App.vue */
-  --header-bg: var(--card-bg);
+  --user-msg-bg: #1ed96c;
+  --ai-msg-bg: rgba(142, 142, 147, 0.12);
+  --button-bg: var(--macos-blue);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  
+  /* macOS 毛玻璃效果 */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.04);
+  --glass-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.04);
+  
+  /* Layout-specific variables */
+  --header-bg: var(--glass-bg);
   --header-color: var(--text-color);
-  --menu-bg: var(--card-bg);
+  --menu-bg: var(--glass-bg);
   --main-bg: var(--background-color);
-  --footer-bg: var(--card-bg);
+  --footer-bg: var(--glass-bg);
   --footer-color: var(--text-color);
-  --border-color: rgba(0, 0, 0, 0.08);
-
+  --border-color: rgba(0, 0, 0, 0.06);
+  
+  /* Element Plus 覆蓋 */
+  --el-color-primary: var(--macos-blue);
+  --el-color-primary-light-3: rgba(0, 122, 255, 0.3);
+  --el-color-primary-light-5: rgba(0, 122, 255, 0.5);
+  --el-color-primary-light-7: rgba(0, 122, 255, 0.7);
+  --el-color-primary-light-8: rgba(0, 122, 255, 0.8);
+  --el-color-primary-light-9: rgba(0, 122, 255, 0.9);
+  
   /* Element Plus Menu 變數 */
-  --el-menu-bg-color: var(--menu-bg);
-  --el-menu-text-color: rgba(0, 0, 0, 0.78);
-  --el-menu-active-color: var(--el-color-primary);
-  --el-menu-hover-bg-color: rgba(124, 58, 237, 0.08);
+  --el-menu-bg-color: transparent;
+  --el-menu-text-color: var(--text-color);
+  --el-menu-active-color: var(--macos-blue);
+  --el-menu-hover-bg-color: rgba(0, 122, 255, 0.08);
 }
 
 /* 卡片樣式 */

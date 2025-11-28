@@ -1,28 +1,20 @@
 <template>
   <div class="chat-view">
-    <!-- 動畫背景 -->
-    <div class="animated-background">
-      <div class="glow-orbs">
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-        <div class="orb orb-4"></div>
-        <div class="orb orb-5"></div>
-        <div class="orb orb-6"></div>
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-        <div class="orb orb-4"></div>
-        <div class="orb orb-5"></div>
-        <div class="orb orb-6"></div>
-      </div>
+    <!-- macOS 風格動態背景 -->
+    <div class="macos-animated-bg">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
     </div>
 
     <!-- 主要內容 -->
     <div class="chat-card">
       <h2 class="title">
-        <span class="title-icon">💳</span>
-        <span class="title-text">智能貸款評估</span>
+        <div class="title-content">
+          <span class="title-icon">💳</span>
+          <span class="title-text">智能貸款還款能力分析</span>
+        </div>
+        <el-icon class="help-icon" @click="showGuideDialog = true"><QuestionFilled /></el-icon>
       </h2>
       <div ref="messagesContainer" class="messages-container">
         <transition-group name="message-fade" tag="div">
@@ -50,6 +42,8 @@
       :show-close="false"
       class="guide-dialog"
       align-center
+      append-to-body
+      :z-index="4000"
     >
       <div class="guide-content">
         <div class="guide-header">
@@ -130,7 +124,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onActivated, onDeactivated, inject } from 'vue'
+import { useRoute } from 'vue-router'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import ChatMessage from '@/components/ChatMessage.vue'
 import ChatInput from '@/components/ChatInput.vue'
 import { useScrollToBottom } from '@/hooks/useScrollToBottom'
@@ -207,12 +203,84 @@ const isWaitingResponse = ref(false) // 等待 AI 回應的狀態
 const GUIDE_STORAGE_KEY = 'chatview-guide-shown'
 const showGuideDialog = ref(false)
 const dontShowAgain = ref(false)
+const isWelcomeGuideVisible = inject('isWelcomeGuideVisible', ref(false))
+const isActive = ref(false)
+const route = useRoute()
 
-// 檢查是否首次訪問
-onMounted(() => {
+const debugState = (tag: string) => {
+  try {
+    console.log('[ChatView][' + tag + ']', {
+      isActive: isActive.value,
+      route: route?.name,
+      isWelcomeGuideVisible: (isWelcomeGuideVisible as any)?.value ?? isWelcomeGuideVisible,
+      hasShownGuide: !!localStorage.getItem(GUIDE_STORAGE_KEY),
+      showGuideDialog: showGuideDialog.value
+    })
+  } catch { /* noop */ }
+}
+
+const checkAndShowGuide = () => {
+  // 確保組件處於活動狀態、路由正確且全局歡迎導覽已關閉
+  debugState('checkAndShowGuide:before')
+  if (!isActive.value || route.name !== 'chat' || isWelcomeGuideVisible.value) return
+  
+  // 優先處理 WelcomeGuide 轉場後的一次性強制顯示
+  try {
+    const pending = sessionStorage.getItem('pendingChildGuide')
+    if (pending === 'chat') {
+      if (!showGuideDialog.value) showGuideDialog.value = true
+      sessionStorage.removeItem('pendingChildGuide')
+      debugState('forced-by-pendingChildGuide')
+      return
+    }
+  } catch { /* noop */ }
+
   const hasShownGuide = localStorage.getItem(GUIDE_STORAGE_KEY)
   if (!hasShownGuide) {
-    showGuideDialog.value = true
+    if (!showGuideDialog.value) {
+      showGuideDialog.value = true
+    }
+    debugState('checkAndShowGuide:after-show')
+  }
+}
+
+// 監聽全局導覽關閉事件
+watch(isWelcomeGuideVisible, (newValue) => {
+  if (!newValue) {
+    nextTick(() => {
+      debugState('welcome-closed')
+      checkAndShowGuide()
+    })
+  }
+})
+
+// 檢查是否首次訪問
+onActivated(() => {
+  isActive.value = true
+  debugState('onActivated')
+  checkAndShowGuide()
+  // 再保險：延時再次檢查，避免事件順序造成誤失敗
+  setTimeout(() => {
+    debugState('onActivated:retry-200ms')
+    checkAndShowGuide()
+  }, 200)
+})
+
+onDeactivated(() => {
+  isActive.value = false
+})
+
+// 監聽路由名稱切換到 chat 時再嘗試一次
+watch(() => route.name, (n) => {
+  if (n === 'chat') {
+    nextTick(() => {
+      debugState('route-changed-to-chat')
+      checkAndShowGuide()
+      setTimeout(() => {
+        debugState('route-changed-to-chat:retry-150ms')
+        checkAndShowGuide()
+      }, 150)
+    })
   }
 })
 
@@ -398,26 +466,72 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
 <style scoped>
 /* 同原檔樣式（略） */
 .chat-view { position: relative; display: flex; flex-direction: column; height: 100%; width: 100%; padding: 12px; gap: 12px; overflow: hidden; }
-.animated-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; overflow: hidden; }
-.glow-orbs { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
-.orb { position: absolute; border-radius: 50%; filter: blur(50px); opacity: 0.5; }
-.orb-1 { width: 400px; height: 400px; top: 10%; left: 15%; background: radial-gradient(circle, rgba(124, 58, 237, 0.5) 0%, rgba(124, 58, 237, 0.3) 30%, rgba(124, 58, 237, 0.15) 50%, rgba(124, 58, 237, 0.05) 70%, transparent 100%); animation: orbFloat1 9.6s ease-in-out infinite; }
-.orb-2 { width: 350px; height: 350px; top: 60%; right: 20%; background: radial-gradient(circle, rgba(147, 51, 234, 0.45) 0%, rgba(147, 51, 234, 0.28) 30%, rgba(147, 51, 234, 0.14) 50%, rgba(147, 51, 234, 0.05) 70%, transparent 100%); animation: orbFloat2 12s ease-in-out infinite; animation-delay: -4s; filter: blur(55px); }
-.orb-3 { width: 300px; height: 300px; bottom: 15%; left: 40%; background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(168, 85, 247, 0.25) 30%, rgba(168, 85, 247, 0.12) 50%, rgba(168, 85, 247, 0.04) 70%, transparent 100%); animation: orbFloat3 8s ease-in-out infinite; animation-delay: -6.4s; filter: blur(60px); }
-.orb-4 { width: 280px; height: 280px; top: 35%; left: 60%; background: radial-gradient(circle, rgba(139, 92, 246, 0.38) 0%, rgba(139, 92, 246, 0.22) 30%, rgba(139, 92, 246, 0.11) 50%, rgba(139, 92, 246, 0.04) 70%, transparent 100%); animation: orbFloat1 11.2s ease-in-out infinite; animation-delay: -2.4s; filter: blur(45px); }
-.orb-5 { width: 320px; height: 320px; top: 75%; left: 10%; background: radial-gradient(circle, rgba(156, 39, 176, 0.35) 0%, rgba(156, 39, 176, 0.2) 30%, rgba(156, 39, 176, 0.1) 50%, rgba(156, 39, 176, 0.03) 70%, transparent 100%); animation: orbFloat2 10.4s ease-in-out infinite; animation-delay: -8s; filter: blur(52px); }
-.orb-6 { width: 260px; height: 260px; top: 45%; right: 15%; background: radial-gradient(circle, rgba(124, 58, 237, 0.32) 0%, rgba(124, 58, 237, 0.18) 30%, rgba(124, 58, 237, 0.09) 50%, rgba(124, 58, 237, 0.03) 70%, transparent 100%); animation: orbFloat3 8.8s ease-in-out infinite; animation-delay: -4.8s; filter: blur(48px); }
-@keyframes orbFloat1 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; } 25% { transform: translate(50px, -60px) scale(1.15); opacity: 0.7; } 50% { transform: translate(-40px, 40px) scale(0.85); opacity: 0.4; } 75% { transform: translate(30px, 50px) scale(1.05); opacity: 0.6; } }
-@keyframes orbFloat2 { 0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.5; } 33% { transform: translate(-45px, 55px) scale(1.12); opacity: 0.65; } 66% { transform: translate(35px, -45px) scale(0.88); opacity: 0.45; } }
-@keyframes orbFloat3 { 0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; } 20% { transform: translate(40px, 30px) scale(1.08); opacity: 0.6; } 40% { transform: translate(-30px, -50px) scale(0.92); opacity: 0.7; } 60% { transform: translate(25px, -35px) scale(1.1); opacity: 0.55; } 80% { transform: translate(-35px, 45px) scale(0.95); opacity: 0.45; } }
+/* macOS 風格動態背景 */
+.macos-animated-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  background: #f5f7fa;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.15;
+  animation: float 25s infinite ease-in-out alternate;
+}
+
+.blob-1 {
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: #007AFF; /* macOS Blue */
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  bottom: -10%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: #5AC8FA; /* macOS Cyan */
+  animation-delay: -5s;
+  opacity: 0.12;
+}
+
+.blob-3 {
+  top: 30%;
+  left: 30%;
+  width: 40vw;
+  height: 40vw;
+  background: #5856D6; /* macOS Indigo */
+  opacity: 0.08;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
 
 .chat-card { 
   position: relative;
   z-index: 1;
-  background: var(--card-bg); 
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   color: var(--text-color); 
-  border: 1px solid var(--border-color); 
-  border-radius: 8px; 
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+  border-radius: 16px; 
   padding: 12px;
   flex: 1;
   min-height: 240px;
@@ -439,10 +553,31 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   letter-spacing: 0.2px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.title-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-icon {
+  font-size: 20px;
+  color: var(--text-color);
+  opacity: 0.5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.help-icon:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  color: #007AFF;
 }
 
 .title:hover {
@@ -471,6 +606,8 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
   padding: 8px; 
   display: flex; 
   flex-direction: column; 
+  position: relative;
+  z-index: 1;
 }
 .message-fade-enter-active, .message-fade-leave-active { transition: opacity 0.5s; }
 .message-fade-enter-from, .message-fade-leave-to { opacity: 0; }
@@ -531,7 +668,7 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
 
 .guide-content {
   padding: 32px 28px 24px;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.03) 0%, rgba(147, 51, 234, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.03) 0%, rgba(10, 132, 255, 0.05) 100%);
 }
 
 .guide-header {
@@ -566,7 +703,7 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
   gap: 16px;
   padding: 16px;
   background: var(--card-bg);
-  border: 1px solid rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(0, 122, 255, 0.15);
   border-radius: 12px;
   transition: all 0.3s ease;
   animation: slideInUp 0.4s ease forwards;
@@ -579,9 +716,9 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
 .step-card:nth-child(4) { animation-delay: 0.4s; }
 
 .step-card:hover {
-  border-color: rgba(124, 58, 237, 0.35);
+  border-color: rgba(0, 122, 255, 0.35);
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
 }
 
 .step-number {
@@ -591,12 +728,12 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+  background: linear-gradient(135deg, #007AFF 0%, #0A84FF 100%);
   color: white;
   font-size: 16px;
   font-weight: 700;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .step-content {
@@ -623,7 +760,7 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
   align-items: center;
   justify-content: space-between;
   padding-top: 20px;
-  border-top: 1px solid rgba(124, 58, 237, 0.1);
+  border-top: 1px solid rgba(0, 122, 255, 0.1);
 }
 
 .got-it-btn {

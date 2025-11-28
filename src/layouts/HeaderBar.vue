@@ -1,9 +1,16 @@
 <template>
   <el-header class="app-header">
     <div class="header-content">
-      <img :src="logoMarkSrc" alt="WitSeeU" class="header-mark" />
-      <img :src="logoSrc" alt="WitSeeU Logo" class="header-logo" />
-      <div class="spacer"></div>
+      <div class="header-left">
+        <img :src="logoMarkSrc" alt="WitSeeU" class="header-mark" @click="$emit('open-guide')" />
+        <img :src="logoSrc" alt="WitSeeU Logo" class="header-logo" />
+      </div>
+      <div class="header-center">
+        <h1 class="header-title">WitSeeU AI Platform</h1>
+      </div>
+      <div class="header-right">
+        <!-- 可以在這裡添加用戶圖標、通知等 -->
+      </div>
     </div>
   </el-header>
 </template>
@@ -18,17 +25,111 @@ const logoMarkSrc = logoMark
 
 <style scoped>
 .app-header {
-  background-color: var(--header-bg);
+  background: var(--header-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   color: var(--header-color);
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
+  height: 52px !important;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 0.5px solid var(--glass-border);
+  box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.03);
+  position: relative;
+  z-index: 100;
 }
-.header-content { display: flex; align-items: center; width: 100%; justify-content: space-between; }
-.header-mark { height: 40px; width: 40px; object-fit: contain; transition: transform .3s ease, filter .3s ease; }
-.header-mark:hover { transform: scale(1.05); }
-.header-logo { height: 45px; width: auto; object-fit: contain; margin-right: 24px; margin-left: 0; margin-top: 5px; }
-.spacer { flex: 1; }
+
+.header-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  gap: 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-mark {
+  height: 42px;
+  width: 42px;
+  object-fit: contain;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  cursor: pointer;
+}
+
+.header-mark:hover {
+  transform: scale(1.08) rotate(5deg);
+}
+
+.header-logo {
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  transition: opacity 0.25s ease;
+}
+
+.header-logo:hover {
+  opacity: 0.8;
+}
+
+.header-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  letter-spacing: -0.4px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+.header-right {
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* RWD 響應式 */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 16px;
+    height: 48px !important;
+  }
+  
+  .header-title {
+    font-size: 15px;
+  }
+  
+  .header-mark {
+    height: 36px;
+    width: 36px;
+  }
+  
+  .header-logo {
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-center {
+    display: none;
+  }
+  
+  .header-right {
+    min-width: auto;
+  }
+}
 </style>
