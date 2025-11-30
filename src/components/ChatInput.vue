@@ -30,15 +30,21 @@
     <!-- 數據生成 Dialog -->
     <el-dialog
       v-model="dataDialogVisible"
-      title="數據生成"
-      width="1000px"
+      title="資料生成"
+      :width="dialogWidth"
+      :fullscreen="isMobile"
       :close-on-click-modal="false"
       :append-to-body="true"
       class="data-gen-dialog"
       :z-index="3000"
     >
       <div class="dialog-form-container">
-        <el-form :model="dataForm" label-width="140px" label-position="left" class="data-gen-form">
+        <el-form 
+          :model="dataForm" 
+          :label-width="isMobile ? 'auto' : '140px'" 
+          :label-position="isMobile ? 'top' : 'left'" 
+          class="data-gen-form"
+        >
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="貸款金額">
@@ -129,6 +135,8 @@
                   format="YYYY-MM"
                   value-format="YYYY-MM"
                   style="width: 100%;"
+                  :teleported="false"
+                  popper-class="data-gen-popper"
                 />
               </el-form-item>
             </el-col>
@@ -166,6 +174,8 @@
                   format="YYYY-MM"
                   value-format="YYYY-MM"
                   style="width: 100%;"
+                  :teleported="false"
+                  popper-class="data-gen-popper"
                 />
               </el-form-item>
             </el-col>
@@ -226,7 +236,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, inject, reactive } from 'vue'
+import { ref, computed, inject, reactive, onMounted, onUnmounted } from 'vue'
 import { Paperclip, Delete, Promotion, ChatDotRound, Lightning, Cpu, ArrowDown, Check, DataAnalysis } from '@element-plus/icons-vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import { MODEL_OPTIONS } from '@/constants/models'
@@ -251,6 +261,23 @@ export default {
   emits: ['send', 'model-change', 'form-data-update'],
   setup(_: unknown, { emit }) {
     const text = ref('')
+    
+    // 響應式視窗大小檢測
+    const windowWidth = ref(window.innerWidth)
+    const isMobile = computed(() => windowWidth.value <= 768)
+    const dialogWidth = computed(() => isMobile.value ? '100%' : '1000px')
+    
+    const handleResize = () => {
+      windowWidth.value = window.innerWidth
+    }
+    
+    onMounted(() => {
+      window.addEventListener('resize', handleResize)
+    })
+    
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize)
+    })
     
     // 數據生成 Dialog
     const dataDialogVisible = ref(false)
@@ -637,7 +664,9 @@ export default {
       termOptions, gradeOptions, homeOwnershipOptions, verificationStatusOptions, purposeOptions, subGradeOptions, applicationTypeOptions,
       earliestCrLineMonth, issueMonth,
       handleApplyForm,
-      handleSubmitAndChat
+      handleSubmitAndChat,
+      isMobile,
+      dialogWidth
     }
   }
 }
@@ -735,6 +764,19 @@ export default {
   z-index: 9999 !important;
 }
 
+/* 日期選擇器 Popper 樣式 */
+:deep(.el-picker__popper) {
+  z-index: 9999 !important;
+}
+
+:deep(.el-date-picker) {
+  z-index: 9999 !important;
+}
+
+:deep(.el-picker-panel) {
+  z-index: 9999 !important;
+}
+
 /* 確保 Dialog 內的下拉選單可正常顯示 */
 :deep(.el-dialog__body) {
   overflow: visible !important;
@@ -792,5 +834,173 @@ export default {
 
 :deep(.el-radio__label) {
   color: var(--text-color);
+}
+
+/* ========== 手機版 RWD 優化 ========== */
+@media (max-width: 768px) {
+  /* Dialog 全螢幕樣式優化 */
+  :deep(.data-gen-dialog) {
+    margin: 0 !important;
+  }
+  
+  :deep(.data-gen-dialog.is-fullscreen) {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    overflow: hidden;
+  }
+  
+  :deep(.data-gen-dialog .el-dialog__header) {
+    padding: 16px 20px;
+    margin: 0;
+  }
+  
+  :deep(.data-gen-dialog .el-dialog__body) {
+    padding: 20px 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 140px);
+  }
+  
+  :deep(.data-gen-dialog .el-dialog__footer) {
+    padding: 12px 16px;
+    margin: 0;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 表單容器 */
+  .dialog-form-container {
+    width: 100%;
+    padding: 0;
+  }
+  
+  /* 表單改為縱向排列 */
+  .data-gen-form {
+    width: 100%;
+  }
+  
+  /* el-row 移除間距,改為垂直堆疊 */
+  .data-gen-form :deep(.el-row) {
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    gap: 0 !important;
+  }
+  
+  /* el-col 全寬顯示 */
+  .data-gen-form :deep(.el-col) {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* 表單項目間距與佈局 */
+  .data-gen-form :deep(.el-form-item) {
+    margin-bottom: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Label 在上方顯示 */
+  .data-gen-form :deep(.el-form-item__label) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: left !important;
+    margin-bottom: 8px !important;
+    padding: 0 !important;
+    line-height: 1.5 !important;
+    float: none !important;
+    font-weight: 500;
+  }
+  
+  /* 表單內容區域 */
+  .data-gen-form :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* 輸入框、選擇器、日期選擇器全寬 */
+  .data-gen-form :deep(.el-input),
+  .data-gen-form :deep(.el-select),
+  .data-gen-form :deep(.el-date-picker) {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .data-gen-form :deep(.el-input__wrapper) {
+    width: 100% !important;
+  }
+  
+  .data-gen-form :deep(.el-select .el-input) {
+    width: 100% !important;
+  }
+  
+  /* Dialog footer 按鈕縱向排列 */
+  .dialog-footer {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .dialog-footer .left-actions,
+  .dialog-footer .right-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+  
+  .dialog-footer .right-actions {
+    flex-direction: column;
+  }
+  
+  .dialog-footer .el-button {
+    flex: 1;
+    margin: 0 !important;
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+/* 小螢幕手機優化 */
+@media (max-width: 480px) {
+  :deep(.data-gen-dialog .el-dialog__header) {
+    padding: 14px 16px;
+  }
+  
+  :deep(.data-gen-dialog .el-dialog__title) {
+    font-size: 16px;
+  }
+  
+  :deep(.data-gen-dialog .el-dialog__body) {
+    padding: 16px 12px;
+    max-height: calc(100vh - 130px);
+  }
+  
+  :deep(.data-gen-dialog .el-dialog__footer) {
+    padding: 10px 12px;
+  }
+  
+  .data-gen-form :deep(.el-form-item) {
+    margin-bottom: 18px !important;
+  }
+  
+  .data-gen-form :deep(.el-form-item__label) {
+    font-size: 14px;
+    margin-bottom: 6px !important;
+  }
+  
+  .data-gen-form :deep(.el-input__inner),
+  .data-gen-form :deep(.el-input__wrapper) {
+    font-size: 16px !important;
+  }
+  
+  .dialog-footer .el-button {
+    height: 42px;
+    font-size: 14px;
+  }
 }
 </style>

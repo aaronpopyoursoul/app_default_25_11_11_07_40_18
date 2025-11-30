@@ -23,6 +23,7 @@
             :key="msg.id"
             :message="msg"
             @show-form="showFormSnapshot"
+            @send-question="handleSuggestedQuestion"
           />
         </transition-group>
         <div v-if="isWaitingResponse" class="typing">
@@ -377,14 +378,16 @@ const handleSend = async (content: SendPayload) => {
       console.log('已更新 lastSentFormData,下次發送相同數據將不帶入 form_data')
     }
 
-    // 創建 AI 回應消息,包含 prediction 數據
+    // 創建 AI 回應消息
+    // 只有在有 form_data 的情況下才顯示 prediction 和 suggested_questions
     const aiMsg: ExtendedChatMessage = {
       id: Date.now() + '-ai',
       type: 'ai',
       content: { 
         text: response.reply,
         files: [],
-        prediction: response.prediction || null
+        prediction: formDataToSend ? (response.prediction || null) : null,
+        suggested_questions: formDataToSend ? (response.suggested_questions || null) : null
       },
       timestamp: new Date(),
       avatar: avatarAI
@@ -441,6 +444,12 @@ const handleSend = async (content: SendPayload) => {
 const showFormSnapshot = (id: string) => {
   activeSnapshotId.value = id
   showFormSnapshotDialog.value = true
+}
+
+// 處理建議問題點擊
+const handleSuggestedQuestion = (question: string) => {
+  // 直接發送問題,不顯示在輸入框
+  handleSend({ text: question, files: [] })
 }
 
 // 格式化展示：千分位、百分比等

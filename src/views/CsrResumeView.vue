@@ -72,7 +72,7 @@
           
           <!-- 配置執行區：選擇器 + 按鈕組合 -->
           <div class="config-action-section">
-            <!-- 選擇器區：AI 模型和版本橫向並排 -->
+            <!-- 選擇器區 -->
             <div class="selector-section">
               <div class="selector-row">
                 <div class="selector-item">
@@ -781,7 +781,7 @@ async function startAnalyze() {
   line-height: 1;
 }
 
-/* 選擇器區段:精簡單行佈局 */
+/* 選擇器區段 */
 .selector-section {
   flex: 1;
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.6), rgba(248, 248, 248, 0.7));
@@ -809,37 +809,33 @@ async function startAnalyze() {
   display: flex;
   gap: 12px;
   flex: 1;
-  align-items: center;
 }
 
 .selector-item {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
   min-width: 0;
 }
 
-/* Label 樣式調整：橫向排列用 */
+/* Label 樣式 */
 .compact-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-color);
   letter-spacing: 0.1px;
   opacity: 0.9;
-  white-space: nowrap;
-  min-width: fit-content;
+  display: block;
 }
 
-/* 選擇器全寬更新 */
+/* 選擇器全寬 */
 .full-width-selector {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .version-select { 
-  width: 70px;
-  flex-shrink: 0;
+  width: 100%;
 }
 
 /* 按鈕區：緊湊化 */
@@ -958,18 +954,66 @@ async function startAnalyze() {
   
   .config-action-section {
     flex-direction: column;
+    gap: 16px;
   }
   
   .upload-row {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    gap: 14px;
+  }
+  
+  /* 檔案上傳區：增加高度以符合觸控標準 */
+  .file-upload-area {
+    min-height: 48px;
+    height: auto;
+    padding: 12px;
+  }
+  
+  /* 上傳提示文字調整 */
+  .upload-hint {
+    font-size: 13px;
+  }
+  
+  .upload-icon {
+    font-size: 20px;
+  }
+  
+  /* 選擇器區：手機版保持橫向並排 */
+  .selector-section {
+    padding: 16px;
+  }
+  
+  .selector-row {
+    gap: 10px;
+  }
+  
+  .selector-item {
+    flex: 1;
+  }
+  
+  /* 按鈕區：全寬顯示 */
+  .action-section {
+    min-width: 100%;
+  }
+  
+  .analyze-btn {
+    min-height: 52px;
+    font-size: 15px;
   }
   
   .csr-view {
     padding: 8px;
+    gap: 10px;
   }
   
-  .analyze-btn {
-    min-height: 48px;
+  /* 卡片內邊距調整 */
+  .form-card, .chat-card {
+    padding: 10px;
+  }
+  
+  /* 上傳區和選擇器區增加內邊距 */
+  .upload-section {
+    padding: 16px;
   }
 }
 

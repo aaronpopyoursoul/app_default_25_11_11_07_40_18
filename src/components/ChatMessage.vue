@@ -40,10 +40,12 @@
                   :key="index"
                   class="shap-feature-item"
                 >
-                  <div class="feature-rank">{{ index + 1 }}</div>
-                  <div class="feature-info">
-                    <div class="feature-name">{{ feature.feature_cn }}</div>
-                    <div class="feature-name-en">{{ feature.feature_en }}</div>
+                  <div class="feature-header">
+                    <div class="feature-rank">{{ index + 1 }}</div>
+                    <div class="feature-info">
+                      <div class="feature-name">{{ feature.feature_cn }}</div>
+                      <div class="feature-name-en">{{ feature.feature_en }}</div>
+                    </div>
                   </div>
                   <div class="feature-impact">
                     <div class="impact-bar-container">
@@ -67,6 +69,22 @@
           <div v-else class="file-preview-name" :title="file.name">📄 {{ file.name }}</div>
         </template>
       </div>
+      
+      <!-- 建議問題區塊 -->
+      <div v-if="message.content.suggested_questions && message.content.suggested_questions.length > 0" class="suggested-questions">
+        <div class="suggested-title">💡 您可能想問</div>
+        <div class="questions-list">
+          <button 
+            v-for="(question, index) in message.content.suggested_questions" 
+            :key="index"
+            class="question-btn"
+            @click="handleQuestionClick(question)"
+          >
+            {{ question }}
+          </button>
+        </div>
+      </div>
+      
       <div class="timestamp">{{ formattedTimestamp }}</div>
     </div>
   </div>
@@ -105,7 +123,7 @@ export default defineComponent({
       required: true
     }
   },
-  emits: ['show-form'],
+  emits: ['show-form', 'send-question'],
   setup(props, { emit }){
     const formattedTimestamp = computed(() => {
       if (!props.message.timestamp) return ''
@@ -276,6 +294,11 @@ export default defineComponent({
     }
     
     const emitShowForm = (id: string) => emit('show-form', id)
+    
+    // 處理建議問題點擊
+    const handleQuestionClick = (question: string) => {
+      emit('send-question', question)
+    }
 
     return { 
       aiAvatar, userAvatar, formattedTimestamp, isImage, 
@@ -283,7 +306,7 @@ export default defineComponent({
       formatTextContent, formatUserText, renderResultTable, renderUsageInfo, decodeHtml,
       getRiskText, getRiskIcon, getRiskClass, getImpactWidth,
       isPredictionExpanded, togglePrediction,
-      ArrowDown, ArrowUp, emitShowForm
+      ArrowDown, ArrowUp, emitShowForm, handleQuestionClick
     }
   }
 })
@@ -294,7 +317,7 @@ export default defineComponent({
 .chat-message.ai{ justify-content:flex-start; }
 .chat-message.user{ justify-content:flex-end; }
 .avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--card-bg); box-shadow:0 1px 3px rgba(0,0,0,.15); flex-shrink:0; }
-.chat-bubble{ position:relative; max-width:65%; min-width:120px; display:inline-block; padding:10px 14px 18px; background:var(--ai-msg-bg); border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.12); word-break:break-word; line-height:1.4; animation:bubbleIn .35s ease; }
+.chat-bubble{ position:relative; max-width:80%; min-width:120px; display:inline-block; padding:10px 14px 18px; background:var(--ai-msg-bg); border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.12); word-break:break-word; line-height:1.4; animation:bubbleIn .35s ease; }
 .chat-message.user .chat-bubble{ background:var(--user-msg-bg); }
 .chat-message.ai .chat-bubble:before,.chat-message.user .chat-bubble:before{ content:''; position:absolute; top:14px; width:12px; height:12px; background:currentColor; transform:rotate(45deg); }
 .chat-message.ai .chat-bubble{ color:var(--ai-msg-bg); }
@@ -415,6 +438,86 @@ export default defineComponent({
 :deep(.result-data-table td){ padding:6px 8px; border-bottom:1px solid var(--border-color); color:var(--text-color); }
 :deep(.result-data-table tr:last-child td){ border-bottom:none; }
 :deep(.result-data-table tr:hover){ background:rgba(0,0,0,.03); }
+
+/* Result table 手機版 RWD 優化 */
+@media (max-width: 768px) {
+  /* 結果表格容器 - 添加橫向滾動 */
+  :deep(.result-table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 8px -12px;
+    padding: 0 12px;
+  }
+  
+  /* 滾動提示 */
+  :deep(.result-table::after) {
+    content: '← 左右滑動查看更多 →';
+    display: block;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-color);
+    opacity: 0.5;
+    margin-top: 8px;
+    font-style: italic;
+  }
+  
+  /* 表格本身 */
+  :deep(.result-data-table) {
+    min-width: 600px;
+    font-size: 12px;
+  }
+  
+  /* 第一列固定 (sticky) */
+  :deep(.result-data-table th:first-child),
+  :deep(.result-data-table td:first-child) {
+    position: sticky;
+    left: 0;
+    background: var(--card-bg);
+    z-index: 2;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  :deep(.result-data-table th:first-child) {
+    background: var(--el-color-primary-light-8);
+    z-index: 3;
+  }
+  
+  /* 表頭固定 */
+  :deep(.result-data-table thead th) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--el-color-primary-light-8);
+  }
+  
+  /* 調整單元格內邊距 */
+  :deep(.result-data-table th),
+  :deep(.result-data-table td) {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 480px) {
+  :deep(.result-table) {
+    margin: 8px -10px;
+    padding: 0 10px;
+  }
+  
+  :deep(.result-data-table) {
+    font-size: 11px;
+  }
+  
+  :deep(.result-data-table th),
+  :deep(.result-data-table td) {
+    padding: 8px 10px;
+  }
+  
+  :deep(.result-table::after) {
+    font-size: 10px;
+    margin-top: 6px;
+  }
+}
 
 /* Usage info grid styling */
 :deep(.usage-info-grid){ display:flex; flex-direction:column; gap:6px; margin:4px 0; }
@@ -583,12 +686,13 @@ export default defineComponent({
   transition: all 0.2s ease;
 }
 
-
-.shap-feature-item:hover {
-  background: rgba(124, 58, 237, 0.08);
-  transform: translateX(4px);
+.feature-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
-
 
 .feature-rank {
   width: 28px;
@@ -685,5 +789,296 @@ export default defineComponent({
 .slide-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* 手機模式 RWD 優化 */
+@media (max-width: 768px) {
+  /* Prediction Card 整體調整 */
+  .prediction-card {
+    margin-top: 10px;
+  }
+  
+  .prediction-header {
+    padding: 10px 14px;
+  }
+  
+  .prediction-title {
+    font-size: 14px;
+  }
+  
+  .prediction-body {
+    padding: 12px;
+  }
+  
+  /* 風險等級區域 - 改為垂直排列 */
+  .risk-level-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .risk-badge {
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+  
+  .risk-icon {
+    font-size: 18px;
+  }
+  
+  .probability-info {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(124, 58, 237, 0.05);
+    border-radius: 8px;
+  }
+  
+  .probability-label {
+    font-size: 13px;
+  }
+  
+  .probability-value {
+    font-size: 20px;
+  }
+  
+  /* SHAP 特徵項目 - 垂直堆疊優化 */
+  .shap-features-list {
+    gap: 10px;
+  }
+  
+  .shap-feature-item {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    align-items: stretch;
+  }
+  
+  /* 排名與特徵名稱保持橫向 */
+  .feature-header {
+    gap: 10px;
+  }
+  
+  .feature-rank {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .feature-info {
+    flex: 1;
+  }
+  
+  .feature-name {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  
+  .feature-name-en {
+    font-size: 10px;
+    opacity: 0.5;
+  }
+  
+  /* 影響力區域 - 全寬顯示 */
+  .feature-impact {
+    width: 100%;
+    gap: 10px;
+  }
+  
+  .impact-bar-container {
+    height: 10px;
+  }
+  
+  .impact-value {
+    font-size: 13px;
+    min-width: 70px;
+  }
+}
+
+/* 超小螢幕優化 (< 480px) */
+@media (max-width: 480px) {
+  .chat-bubble {
+    max-width: 90%;
+  }
+  
+  .prediction-header {
+    padding: 8px 12px;
+  }
+  
+  .prediction-title {
+    font-size: 13px;
+  }
+  
+  .prediction-body {
+    padding: 10px;
+  }
+  
+  .risk-badge {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  .probability-value {
+    font-size: 18px;
+  }
+  
+  .shap-feature-item {
+    padding: 10px;
+  }
+  
+  .feature-name {
+    font-size: 12px;
+  }
+  
+  .feature-rank {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+  }
+  
+  .impact-bar-container {
+    height: 8px;
+  }
+  
+  .impact-value {
+    font-size: 12px;
+    min-width: 60px;
+  }
+}
+
+/* ========== 建議問題樣式 ========== */
+.suggested-questions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  animation: fadeIn 0.4s ease;
+}
+
+.suggested-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 12px;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question-btn {
+  position: relative;
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 12px;
+  color: var(--text-color);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.question-btn::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.question-btn:hover {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: var(--el-color-primary);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+  transform: translateX(2px);
+}
+
+.question-btn:hover::before {
+  opacity: 1;
+}
+
+.question-btn:active {
+  transform: translateX(2px) scale(0.98);
+  box-shadow: 0 1px 4px rgba(124, 58, 237, 0.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 手機版建議問題優化 */
+@media (max-width: 768px) {
+  .suggested-questions {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+  
+  .suggested-title {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  
+  .questions-list {
+    gap: 10px;
+  }
+  
+  .question-btn {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-radius: 10px;
+    /* 增加觸控區域 */
+    min-height: 48px;
+  }
+  
+  .question-btn:active {
+    background: rgba(124, 58, 237, 0.12);
+  }
+}
+
+@media (max-width: 480px) {
+  .suggested-questions {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  
+  .suggested-title {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  
+  .questions-list {
+    gap: 8px;
+  }
+  
+  .question-btn {
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
 }
 </style>

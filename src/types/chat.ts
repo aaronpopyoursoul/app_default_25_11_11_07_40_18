@@ -22,6 +22,7 @@ export interface ChatContent {
       mean_abs_shap: number
     }>
   } | null
+  suggested_questions?: string[] | null
   meta?: {
     collapsible?: boolean
     truncatedPreview?: string
