@@ -9,7 +9,7 @@
       <el-input type="textarea" v-model="text" :rows="3" placeholder="請輸入訊息,按 Enter 送出" @keydown.enter.prevent="handleSend" clearable :maxlength="1000" show-word-limit class="input-textarea" />
       <el-button type="primary" @click="openDataDialog" class="data-gen-btn" size="small">
         <el-icon style="margin-right: 4px;"><DataAnalysis /></el-icon>
-        數據生成
+        資料生成
       </el-button>
       <ModelSelector v-model="selectedModel" :options="modelOptions" @change="handleModelChange" />
       <el-button type="primary" @click="handleSend" :disabled="!canSend" circle class="send-btn-inside" :title="'發送訊息'">
@@ -28,7 +28,15 @@
     </div>
 
     <!-- 數據生成 Dialog -->
-    <el-dialog v-model="dataDialogVisible" title="數據生成" width="1000px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="dataDialogVisible"
+      title="數據生成"
+      width="1000px"
+      :close-on-click-modal="false"
+      :append-to-body="true"
+      class="data-gen-dialog"
+      :z-index="3000"
+    >
       <div class="dialog-form-container">
         <el-form :model="dataForm" label-width="140px" label-position="left" class="data-gen-form">
           <el-row :gutter="20">
@@ -39,7 +47,7 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="期限/期數">
-                <el-select v-model="dataForm.term" placeholder="選擇期數" filterable style="width: 100%">
+                <el-select v-model="dataForm.term" placeholder="選擇期數" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in termOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
@@ -62,14 +70,14 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="貸款等級">
-                <el-select v-model="dataForm.grade" placeholder="選擇等級 (A~G)" filterable style="width: 100%">
+                <el-select v-model="dataForm.grade" placeholder="選擇等級 (A~G)" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in gradeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="貸款子等級">
-                <el-select v-model="dataForm.sub_grade" placeholder="選擇子等級" filterable style="width: 100%">
+                <el-select v-model="dataForm.sub_grade" placeholder="選擇子等級" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in subGradeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
@@ -92,7 +100,7 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="房屋所有權">
-                <el-select v-model="dataForm.home_ownership" placeholder="選擇房屋狀態" filterable style="width: 100%">
+                <el-select v-model="dataForm.home_ownership" placeholder="選擇房屋狀態" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in homeOwnershipOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
@@ -107,7 +115,7 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="驗證狀態">
-                <el-select v-model="dataForm.verification_status" placeholder="選擇驗證狀態" filterable style="width: 100%">
+                <el-select v-model="dataForm.verification_status" placeholder="選擇驗證狀態" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in verificationStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
@@ -129,14 +137,14 @@
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="申請類型">
-                <el-select v-model="dataForm.application_type" placeholder="選擇申請類型" filterable style="width: 100%">
+                <el-select v-model="dataForm.application_type" placeholder="選擇申請類型" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in applicationTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
               <el-form-item label="目的">
-                <el-select v-model="dataForm.purpose" placeholder="選擇用途" filterable style="width: 100%">
+                <el-select v-model="dataForm.purpose" placeholder="選擇用途" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in purposeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
@@ -200,14 +208,16 @@
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dataDialogVisible = false">關閉</el-button>
-          <el-button type="primary" @click="handleApplyForm">
-            套用此表單
-          </el-button>
-          <el-button type="primary" @click="handleDataGenerate">
-            <el-icon style="margin-right: 4px;"><DataAnalysis /></el-icon>
-            數據生成
-          </el-button>
+          <div class="left-actions">
+            <el-button type="primary" @click="handleDataGenerate">
+              <el-icon style="margin-right: 4px;"><DataAnalysis /></el-icon>
+              資料生成
+            </el-button>
+          </div>
+          <div class="right-actions">
+            <el-button type="danger" @click="dataDialogVisible = false">關閉</el-button>
+            <el-button type="success" @click="handleSubmitAndChat">送出</el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -459,7 +469,8 @@ export default {
       dataForm.total_acc = randomSample.total_acc
       dataForm.mort_acc = randomSample.mort_acc
       dataForm.pub_rec_bankruptcies = randomSample.pub_rec_bankruptcies
-      dataForm.application_type = randomSample.application_type
+      // 正確映射 application_type: 從樣本的 value 轉為大寫標準值
+      dataForm.application_type = randomSample.application_type.toUpperCase() === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'JOINT'
       dataForm.address = ''
       
       // 準備 LoanInput 格式並通知父組件
@@ -610,6 +621,12 @@ export default {
       text.value = ''
       files.splice(0, files.length)
     }
+    const handleSubmitAndChat = () => {
+      // 先套用目前表單內容到父層的 formdata
+      handleApplyForm()
+      // 附帶固定訊息請模型依表單執行分析
+      emit('send', { text: '請用表單數據執行分析', files: [] })
+    }
   const handleModelChange = (model: string) => { setModel(model) }
   // 初始模型通知（保險同步一次）
   emit('model-change', selectedModel.value)
@@ -619,14 +636,15 @@ export default {
       dataDialogVisible, dataForm, openDataDialog, handleDataGenerate,
       termOptions, gradeOptions, homeOwnershipOptions, verificationStatusOptions, purposeOptions, subGradeOptions, applicationTypeOptions,
       earliestCrLineMonth, issueMonth,
-      handleApplyForm
+      handleApplyForm,
+      handleSubmitAndChat
     }
   }
 }
 </script>
 
 <style scoped>
-/* 複製自原檔（略） — 維持視覺不變 */
+/* 左側對齊與寬度限制調整 */
 .chat-input-container { padding: 0; background-color: transparent; display: flex; flex-direction: column; gap: 10px; transition: background-color .35s ease; }
 .input-wrapper { position: relative; width: 100%; }
 .file-input { display: none; }
@@ -654,22 +672,23 @@ export default {
 .remove-file-btn:active { filter: brightness(0.88); }
  .input-wrapper :deep(.model-selector) { position: absolute; right: 60px; top: 80%; transform: translateY(-50%) translateY(-8px); z-index: 2; cursor: pointer; }
 
-/* 數據生成按鈕 */
+/* 資料生成按鈕 - 與 ModelSelector 一致的設計 */
 .data-gen-btn {
   position: absolute;
-  right: 75px;
-  top: 35%;
+  right: 190px;
+  top: 80%;
   transform: translateY(-50%) translateY(-8px);
-  height: 28px;
+  height: auto;
   font-size: 13px;
   z-index: 2;
   --el-button-bg-color: var(--button-bg);
   --el-button-hover-bg-color: var(--el-color-primary-dark-2);
   --el-button-active-bg-color: var(--el-color-primary);
   transition: background-color .25s ease, filter .25s ease;
-  padding: 0 12px;
+  padding: 4px 10px;
   border-radius: 6px;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .data-gen-btn:hover {
@@ -706,6 +725,26 @@ export default {
   overflow-y: auto;
 }
 
+/* 增強 Select 下拉層級與樣式，避免被 Dialog 或其他容器遮蔽 */
+:deep(.el-select__popper),
+:deep(.data-gen-popper) {
+  z-index: 9999 !important;
+}
+
+:deep(.el-popper) {
+  z-index: 9999 !important;
+}
+
+/* 確保 Dialog 內的下拉選單可正常顯示 */
+:deep(.el-dialog__body) {
+  overflow: visible !important;
+}
+
+:deep(.data-gen-dialog .el-dialog__body) {
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+
 .dialog-form-container {
   width: 100%;
 }
@@ -726,9 +765,13 @@ export default {
 
 .dialog-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
 }
+
+.dialog-footer .left-actions { display: flex; gap: 12px; }
+.dialog-footer .right-actions { display: flex; gap: 12px; }
 
 :deep(.el-form-item__label) {
   color: var(--text-color);
