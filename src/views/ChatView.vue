@@ -22,6 +22,7 @@
             v-for="(msg, index) in messages"
             :key="msg.id"
             :message="msg"
+            :disabled="isWaitingResponse"
             @show-form="showFormSnapshot"
             @send-question="handleSuggestedQuestion"
           />
@@ -33,7 +34,7 @@
         </div>
       </div>
     </div>
-    <ChatInput @send="handleSend" @form-data-update="handleFormDataUpdate" />
+    <ChatInput :disabled="isWaitingResponse" @send="handleSend" @form-data-update="handleFormDataUpdate" />
 
     <!-- 使用說明彈窗 -->
     <el-dialog
@@ -297,7 +298,7 @@ const avatarAI = new URL('../assets/avatar-ai.svg', import.meta.url).href
 const avatarUser = 'https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_1280.png'
 
 // 使用改進的滾動邏輯
-const { forceScroll } = useScrollToBottom(messagesContainer)
+const { forceScroll, forceScrollToLatestMessage } = useScrollToBottom(messagesContainer)
 
 // 移除自動 watch，改為手動控制滾動時機
 
@@ -394,8 +395,24 @@ const handleSend = async (content: SendPayload) => {
     }
     messages.value.push(aiMsg)
     
-    // 情境 2：AI 回覆 → 永遠滾動
-    forceScroll()
+    // 判斷是否為長訊息
+    const isLongMessage = (
+      // 包含 prediction 資料卡
+      (aiMsg.content.prediction !== null && aiMsg.content.prediction !== undefined) ||
+      // 包含建議問題清單
+      (aiMsg.content.suggested_questions && aiMsg.content.suggested_questions.length > 0) ||
+      // 包含列表元素（ol/li）
+      (response.reply && (response.reply.includes('<ol') || response.reply.includes('<li') || response.reply.includes('1.') || response.reply.includes('- ')))
+    )
+    
+    // 情境 2：AI 回覆 → 根據訊息長度決定捲動方式
+    if (isLongMessage) {
+      // 長訊息：捲動到訊息頂部，讓使用者從開頭閱讀
+      forceScrollToLatestMessage()
+    } else {
+      // 短訊息：捲動到底部
+      forceScroll()
+    }
 
     // 如果有預測結果,記錄到 console
     if (response.prediction) {
@@ -448,6 +465,7 @@ const showFormSnapshot = (id: string) => {
 
 // 處理建議問題點擊
 const handleSuggestedQuestion = (question: string) => {
+  if (isWaitingResponse.value) return
   // 直接發送問題,不顯示在輸入框
   handleSend({ text: question, files: [] })
 }

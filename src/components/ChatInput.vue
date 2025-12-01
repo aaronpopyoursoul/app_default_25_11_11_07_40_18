@@ -6,13 +6,13 @@
       <!-- <el-button type="primary" @click="triggerFileInput" circle class="upload-btn-inside" :title="'上傳 CSV 檔案'">
         <Paperclip />
       </el-button> -->
-      <el-input type="textarea" v-model="text" :rows="3" placeholder="請輸入訊息,按 Enter 送出" @keydown.enter.prevent="handleSend" clearable :maxlength="1000" show-word-limit class="input-textarea" />
-      <el-button type="primary" @click="openDataDialog" class="data-gen-btn" size="small">
+      <el-input type="textarea" v-model="text" :rows="3" placeholder="請輸入訊息,按 Enter 送出" @keydown.enter.prevent="handleSend" clearable :maxlength="1000" show-word-limit class="input-textarea" :disabled="disabled" />
+      <el-button type="primary" @click="openDataDialog" class="data-gen-btn" size="small" :disabled="disabled">
         <el-icon style="margin-right: 4px;"><DataAnalysis /></el-icon>
         資料生成
       </el-button>
       <ModelSelector v-model="selectedModel" :options="modelOptions" @change="handleModelChange" />
-      <el-button type="primary" @click="handleSend" :disabled="!canSend" circle class="send-btn-inside" :title="'發送訊息'">
+      <el-button type="primary" @click="handleSend" :disabled="!canSend || disabled" circle class="send-btn-inside" :title="'發送訊息'">
         <Promotion />
       </el-button>
       
@@ -258,8 +258,14 @@ import {
 export default {
   name: 'ChatInput',
   components: { Paperclip, Delete, Promotion, ChatDotRound, Lightning, Cpu, ArrowDown, Check, DataAnalysis, ModelSelector },
+  props: {
+    disabled: {
+      type: Boolean,
+      default: false
+    }
+  },
   emits: ['send', 'model-change', 'form-data-update'],
-  setup(_: unknown, { emit }) {
+  setup(props: { disabled: boolean }, { emit }) {
     const text = ref('')
     
     // 響應式視窗大小檢測
@@ -642,7 +648,7 @@ export default {
     const handleFileChange = onFileChange
     const canSend = computed(() => (text.value && text.value.trim().length > 0) || files.length > 0)
     const handleSend = () => {
-      if (!canSend.value) return
+      if (!canSend.value || props.disabled) return
       const sendFiles = files.map(({ id, name, size, type, url }) => ({ id, name, size, type, url }))
       emit('send', { text: text.value.trim(), files: sendFiles })
       text.value = ''

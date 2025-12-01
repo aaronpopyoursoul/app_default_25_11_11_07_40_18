@@ -78,6 +78,7 @@
             v-for="(question, index) in message.content.suggested_questions" 
             :key="index"
             class="question-btn"
+            :disabled="disabled"
             @click="handleQuestionClick(question)"
           >
             {{ question }}
@@ -121,6 +122,10 @@ export default defineComponent({
     message: {
       type: Object as () => ChatMessageType,
       required: true
+    },
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['show-form', 'send-question'],
@@ -297,6 +302,7 @@ export default defineComponent({
     
     // 處理建議問題點擊
     const handleQuestionClick = (question: string) => {
+      if (props.disabled) return
       emit('send-question', question)
     }
 
@@ -1018,6 +1024,19 @@ export default defineComponent({
 .question-btn:active {
   transform: translateX(2px) scale(0.98);
   box-shadow: 0 1px 4px rgba(124, 58, 237, 0.2);
+}
+
+.question-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.question-btn:disabled:hover {
+  transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 @keyframes fadeIn {
