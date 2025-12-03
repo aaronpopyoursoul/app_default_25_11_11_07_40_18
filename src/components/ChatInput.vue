@@ -331,9 +331,8 @@ export default {
     const formatToMonYY = (ym: string): string => {
       if (!ym) return ''
       const [y,m] = ym.split('-')
-      const year2 = y.slice(-2)
       const idx = parseInt(m,10)-1
-      return `${monthAbbrevs[idx]}-${year2}`
+      return `${monthAbbrevs[idx]}-${y}`
     }
     const normalizeEmpLength = (raw: string): string => {
       const v = raw.trim()
@@ -491,8 +490,8 @@ export default {
       dataForm.loan_status = ''
       dataForm.purpose = randomSample.purpose
       dataForm.dti = randomSample.dti
-  // 樣本 earliest_cr_line 若為 Oct-1999 轉 Mon-YY => Oct-99
-  dataForm.earliest_cr_line = randomSample.earliest_cr_line.replace(/-(\d{4})$/, (m) => '-' + m.slice(-2))
+  // 樣本 earliest_cr_line 維持完整年份格式 mmm-yyyy
+  dataForm.earliest_cr_line = randomSample.earliest_cr_line
   earliestCrLineMonth.value = ''
   issueMonth.value = ''
       dataForm.open_acc = randomSample.open_acc
