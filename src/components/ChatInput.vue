@@ -6,7 +6,7 @@
       <!-- <el-button type="primary" @click="triggerFileInput" circle class="upload-btn-inside" :title="'上傳 CSV 檔案'">
         <Paperclip />
       </el-button> -->
-      <el-input type="textarea" v-model="text" :rows="3" placeholder="請輸入訊息,按 Enter 送出" @keydown.enter.prevent="handleSend" clearable :maxlength="1000" show-word-limit class="input-textarea" :disabled="disabled" />
+      <el-input type="textarea" v-model="text" :rows="3" placeholder="請輸入訊息" @keydown.enter.prevent="handleSend" clearable :maxlength="1000" show-word-limit class="input-textarea" :disabled="disabled" />
       <el-button type="primary" @click="openDataDialog" class="data-gen-btn" size="small" :disabled="disabled">
         <el-icon style="margin-right: 4px;"><DataAnalysis /></el-icon>
         資料生成
@@ -35,10 +35,20 @@
       :fullscreen="isMobile"
       :close-on-click-modal="false"
       :append-to-body="true"
-      class="data-gen-dialog"
+      custom-class="data-gen-dialog"
       :z-index="3000"
     >
       <div class="dialog-form-container">
+        <!-- 驗證錯誤提示 -->
+        <transition name="el-fade-in">
+          <div v-if="showValidationAlert" class="validation-alert">
+            <div class="validation-alert-content">
+              <el-icon class="validation-alert-icon"><WarningFilled /></el-icon>
+              <span class="validation-alert-text">請填寫所有必填欄位</span>
+            </div>
+          </div>
+        </transition>
+        
         <el-form 
           :model="dataForm" 
           :label-width="isMobile ? 'auto' : '140px'" 
@@ -47,12 +57,16 @@
         >
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="貸款金額">
-                <el-input v-model="dataForm.loan_amnt" placeholder="請輸入貸款金額" />
+              <el-form-item label="貸款金額" :class="{ 'validation-error': validationErrors.has('loan_amnt') }">
+                <el-input v-model="dataForm.loan_amnt" placeholder="請輸入貸款金額">
+                  <template #append>
+                    <span class="currency-suffix">USD</span>
+                  </template>
+                </el-input>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="期限/期數">
+              <el-form-item label="期限/期數" :class="{ 'validation-error': validationErrors.has('term') }">
                 <el-select v-model="dataForm.term" placeholder="選擇期數" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in termOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
@@ -62,27 +76,31 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="利率">
+              <el-form-item label="利率" :class="{ 'validation-error': validationErrors.has('int_rate') }">
                 <el-input v-model="dataForm.int_rate" placeholder="請輸入利率" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="分期付款金額">
-                <el-input v-model="dataForm.installment" placeholder="請輸入分期付款金額" />
+              <el-form-item label="分期付款金額" :class="{ 'validation-error': validationErrors.has('installment') }">
+                <el-input v-model="dataForm.installment" placeholder="請輸入分期付款金額">
+                  <template #append>
+                    <span class="currency-suffix">USD</span>
+                  </template>
+                </el-input>
               </el-form-item>
             </el-col>
           </el-row>
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="貸款等級">
+              <el-form-item label="貸款等級" :class="{ 'validation-error': validationErrors.has('grade') }">
                 <el-select v-model="dataForm.grade" placeholder="選擇等級 (A~G)" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in gradeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="貸款子等級">
+              <el-form-item label="貸款子等級" :class="{ 'validation-error': validationErrors.has('sub_grade') }">
                 <el-select v-model="dataForm.sub_grade" placeholder="選擇子等級" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in subGradeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
@@ -92,12 +110,14 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="職位名稱">
-                <el-input v-model="dataForm.emp_title" placeholder="請輸入職位名稱" />
+              <el-form-item label="職位名稱" :class="{ 'validation-error': validationErrors.has('emp_title') }">
+                <el-select v-model="dataForm.emp_title" placeholder="選擇職位" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
+                  <el-option v-for="opt in empTitleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+                </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="職位年資">
+              <el-form-item label="職位年資" :class="{ 'validation-error': validationErrors.has('emp_length') }">
                 <el-input v-model="dataForm.emp_length" placeholder="僅輸入數字或 10+ / <1" />
               </el-form-item>
             </el-col>
@@ -105,38 +125,37 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="房屋所有權">
+              <el-form-item label="房屋所有權" :class="{ 'validation-error': validationErrors.has('home_ownership') }">
                 <el-select v-model="dataForm.home_ownership" placeholder="選擇房屋狀態" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in homeOwnershipOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="年收入">
-                <el-input v-model="dataForm.annual_inc" placeholder="請輸入年收入" />
+              <el-form-item label="年收入" :class="{ 'validation-error': validationErrors.has('annual_inc') }">
+                <el-input v-model="dataForm.annual_inc" placeholder="請輸入年收入">
+                  <template #append>
+                    <span class="currency-suffix">USD</span>
+                  </template>
+                </el-input>
               </el-form-item>
             </el-col>
           </el-row>
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="驗證狀態">
+              <el-form-item label="驗證狀態" :class="{ 'validation-error': validationErrors.has('verification_status') }">
                 <el-select v-model="dataForm.verification_status" placeholder="選擇驗證狀態" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in verificationStatusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="核發月份">
-                <el-date-picker
-                  v-model="issueMonth"
-                  type="month"
-                  placeholder="選擇月份"
-                  format="YYYY-MM"
-                  value-format="YYYY-MM"
-                  style="width: 100%;"
-                  :teleported="false"
-                  popper-class="data-gen-popper"
+              <el-form-item label="核發月份" :class="{ 'validation-error': validationErrors.has('issue_d') }">
+                <el-input 
+                  v-model="dataForm.issue_d" 
+                  placeholder="格式: Jan-2024"
+                  readonly
                 />
               </el-form-item>
             </el-col>
@@ -144,14 +163,14 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="申請類型">
+              <el-form-item label="申請類型" :class="{ 'validation-error': validationErrors.has('application_type') }">
                 <el-select v-model="dataForm.application_type" placeholder="選擇申請類型" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in applicationTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="目的">
+              <el-form-item label="目的" :class="{ 'validation-error': validationErrors.has('purpose') }">
                 <el-select v-model="dataForm.purpose" placeholder="選擇用途" filterable style="width: 100%" popper-class="data-gen-popper" :teleported="false">
                   <el-option v-for="opt in purposeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
                 </el-select>
@@ -161,21 +180,16 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="債務收入比">
+              <el-form-item label="債務收入比" :class="{ 'validation-error': validationErrors.has('dti') }">
                 <el-input v-model="dataForm.dti" placeholder="請輸入債務收入比" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="最早信用紀錄月份">
-                <el-date-picker
-                  v-model="earliestCrLineMonth"
-                  type="month"
-                  placeholder="選擇月份"
-                  format="YYYY-MM"
-                  value-format="YYYY-MM"
-                  style="width: 100%;"
-                  :teleported="false"
-                  popper-class="data-gen-popper"
+              <el-form-item label="最早信用紀錄月份" :class="{ 'validation-error': validationErrors.has('earliest_cr_line') }">
+                <el-input 
+                  v-model="dataForm.earliest_cr_line" 
+                  placeholder="格式: Jan-2020"
+                  readonly
                 />
               </el-form-item>
             </el-col>
@@ -183,12 +197,12 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="開立帳戶數">
+              <el-form-item label="開立帳戶數" :class="{ 'validation-error': validationErrors.has('open_acc') }">
                 <el-input v-model="dataForm.open_acc" placeholder="請輸入開立帳戶數" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="公共紀錄">
+              <el-form-item label="公共紀錄" :class="{ 'validation-error': validationErrors.has('pub_rec') }">
                 <el-input v-model="dataForm.pub_rec" placeholder="請輸入公共紀錄" />
               </el-form-item>
             </el-col>
@@ -196,12 +210,16 @@
           
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="循環餘額">
-                <el-input v-model="dataForm.revol_bal" placeholder="請輸入循環餘額" />
+              <el-form-item label="循環餘額" :class="{ 'validation-error': validationErrors.has('revol_bal') }">
+                <el-input v-model="dataForm.revol_bal" placeholder="請輸入循環餘額">
+                  <template #append>
+                    <span class="currency-suffix">USD</span>
+                  </template>
+                </el-input>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="循環使用率">
+              <el-form-item label="循環使用率" :class="{ 'validation-error': validationErrors.has('revol_util') }">
                 <el-input v-model="dataForm.revol_util" placeholder="請輸入循環使用率" />
               </el-form-item>
             </el-col>
@@ -225,8 +243,8 @@
             </el-button>
           </div>
           <div class="right-actions">
-            <el-button type="danger" @click="dataDialogVisible = false">關閉</el-button>
-            <el-button type="success" @click="handleSubmitAndChat">送出</el-button>
+              <el-button type="danger" @click="dataDialogVisible = false">關閉</el-button>
+              <el-button type="success" @click="handleSubmitAndChat">送出</el-button>
           </div>
         </div>
       </template>
@@ -236,8 +254,8 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, inject, reactive, onMounted, onUnmounted } from 'vue'
-import { Paperclip, Delete, Promotion, ChatDotRound, Lightning, Cpu, ArrowDown, Check, DataAnalysis } from '@element-plus/icons-vue'
+import { ref, computed, inject, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { Paperclip, Delete, Promotion, ChatDotRound, Lightning, Cpu, ArrowDown, Check, DataAnalysis, WarningFilled } from '@element-plus/icons-vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import { MODEL_OPTIONS } from '@/constants/models'
 import { useFileUploads } from '@/hooks/useFileUploads'
@@ -287,6 +305,49 @@ export default {
     
     // 數據生成 Dialog
     const dataDialogVisible = ref(false)
+    
+    // 監聽 Dialog 開啟,手動設置固定底部樣式
+    watch(dataDialogVisible, async (newVal) => {
+      if (newVal && isMobile.value) {
+        await nextTick()
+        // 延遲確保 DOM 已渲染
+        setTimeout(() => {
+          const footer = document.querySelector('.data-gen-dialog .el-dialog__footer') as HTMLElement
+          const body = document.querySelector('.data-gen-dialog .el-dialog__body') as HTMLElement
+          const dialog = document.querySelector('.data-gen-dialog') as HTMLElement
+          
+          if (footer) {
+            footer.style.position = 'fixed'
+            footer.style.bottom = '0'
+            footer.style.left = '0'
+            footer.style.right = '0'
+            footer.style.width = '100%'
+            footer.style.zIndex = '9999'
+            footer.style.padding = '12px 16px'
+            footer.style.paddingBottom = 'calc(12px + env(safe-area-inset-bottom))'
+            footer.style.margin = '0'
+            footer.style.background = 'rgba(255, 255, 255, 0.95)'
+            footer.style.backdropFilter = 'blur(20px)';
+            (footer.style as any).webkitBackdropFilter = 'blur(20px)'
+            footer.style.boxShadow = '0 -4px 16px rgba(0, 0, 0, 0.12)'
+            footer.style.borderTop = '1px solid rgba(0, 0, 0, 0.08)'
+          }
+          
+          if (body) {
+            body.style.paddingBottom = '100px'
+            body.style.overflowY = 'auto';
+            (body.style as any).webkitOverflowScrolling = 'touch'
+          }
+          
+          if (dialog) {
+            dialog.style.display = 'flex'
+            dialog.style.flexDirection = 'column'
+            dialog.style.height = '100vh'
+            dialog.style.overflow = 'hidden'
+          }
+        }, 100)
+      }
+    })
     const dataForm = reactive({
       loan_amnt: '',
       term: '',
@@ -323,11 +384,46 @@ export default {
     const purposeOptions = PURPOSE_OPTIONS
     const applicationTypeOptions = APPLICATION_TYPE_OPTIONS
     const subGradeOptions = computed(() => buildSubGradeOptionsByGrade(dataForm.grade))
+    
+    // 職位名稱選項
+    const empTitleOptions = [
+      { value: 'Chief Executive Officer', label: '執行長 (CEO)' },
+      { value: 'Vice President', label: '副總經理' },
+      { value: 'Director', label: '協理/總監' },
+      { value: 'Manager', label: '經理' },
+      { value: 'Deputy Manager', label: '副理' },
+      { value: 'Section Chief', label: '課長' },
+      { value: 'Senior Engineer', label: '資深工程師' },
+      { value: 'Engineer', label: '工程師' },
+      { value: 'Senior Specialist', label: '資深專員' },
+      { value: 'Specialist', label: '專員' },
+      { value: 'Associate Specialist', label: '助理專員' },
+      { value: 'Senior Accountant', label: '資深會計師' },
+      { value: 'Accountant', label: '會計師' },
+      { value: 'Sales Manager', label: '業務經理' },
+      { value: 'Sales Representative', label: '業務代表' },
+      { value: 'Administrative Assistant', label: '行政助理' },
+      { value: 'HR Manager', label: '人資經理' },
+      { value: 'IT Specialist', label: 'IT專員' },
+      { value: 'Marketing Manager', label: '行銷經理' },
+      { value: 'Customer Service', label: '客服人員' }
+    ]
     // 月份選擇暫存（YYYY-MM）
     const earliestCrLineMonth = ref('')
     const issueMonth = ref('')
+    
+    // 表單驗證錯誤狀態
+    const validationErrors = reactive<Set<string>>(new Set())
+    const showValidationAlert = ref(false)
 
     const monthAbbrevs = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'] as const
+    
+    // 隨機生成日期 (格式: Mon-YYYY)
+    const generateRandomDate = (startYear: number, endYear: number): string => {
+      const year = Math.floor(Math.random() * (endYear - startYear + 1)) + startYear
+      const monthIdx = Math.floor(Math.random() * 12)
+      return `${monthAbbrevs[monthIdx]}-${year}`
+    }
     const formatToMonYY = (ym: string): string => {
       if (!ym) return ''
       const [y,m] = ym.split('-')
@@ -474,6 +570,17 @@ export default {
       const randomSample = sampleData[Math.floor(Math.random() * sampleData.length)]
       console.log('隨機選擇的樣本:', randomSample.name)
       
+      // 清除驗證錯誤
+      validationErrors.clear()
+      showValidationAlert.value = false
+      
+      // 隨機選擇職位
+      const randomEmpTitle = empTitleOptions[Math.floor(Math.random() * empTitleOptions.length)].value
+      
+      // 生成隨機日期
+      const randomEarliestCrLine = generateRandomDate(1990, 2020)
+      const randomIssueDate = generateRandomDate(2020, 2024)
+      
       // 填充表單數據
       dataForm.loan_amnt = randomSample.loan_amnt
       dataForm.term = randomSample.term
@@ -481,19 +588,18 @@ export default {
       dataForm.installment = randomSample.installment
       dataForm.grade = randomSample.sub_grade.charAt(0)
       dataForm.sub_grade = randomSample.sub_grade
-      dataForm.emp_title = ''
+      dataForm.emp_title = randomEmpTitle
       dataForm.emp_length = '5 years'
       dataForm.home_ownership = randomSample.home_ownership
       dataForm.annual_inc = randomSample.annual_inc
       dataForm.verification_status = randomSample.verification_status
-  dataForm.issue_d = ''
+      dataForm.issue_d = randomIssueDate
       dataForm.loan_status = ''
       dataForm.purpose = randomSample.purpose
       dataForm.dti = randomSample.dti
-  // 樣本 earliest_cr_line 維持完整年份格式 mmm-yyyy
-  dataForm.earliest_cr_line = randomSample.earliest_cr_line
-  earliestCrLineMonth.value = ''
-  issueMonth.value = ''
+      dataForm.earliest_cr_line = randomEarliestCrLine
+      earliestCrLineMonth.value = ''
+      issueMonth.value = ''
       dataForm.open_acc = randomSample.open_acc
       dataForm.pub_rec = randomSample.pub_rec
       dataForm.revol_bal = randomSample.revol_bal
@@ -547,23 +653,59 @@ export default {
     }
 
     // 依目前表單值組裝 LoanInput 並送出（值以 API 需要的 value 為準，label 僅供顯示）
-    const handleApplyForm = () => {
+    const handleApplyForm = (): boolean => {
+      // 清除舊的驗證錯誤
+      validationErrors.clear()
+      showValidationAlert.value = false
+      
       // 基本檢核與轉型
-  const toNum = (v: string) => Number(String(v).trim())
+      const toNum = (v: string) => Number(String(v).trim())
       const toInt = (v: string) => parseInt(String(v).trim(), 10)
 
-      const requiredStrings: Array<[string, string]> = [
-        ['term', dataForm.term],
-        ['grade', dataForm.grade],
-        ['sub_grade', dataForm.sub_grade],
-        ['emp_length', dataForm.emp_length],
-        ['home_ownership', dataForm.home_ownership],
-        ['verification_status', dataForm.verification_status],
-        ['earliest_cr_line', dataForm.earliest_cr_line],
-        ['purpose', dataForm.purpose],
-        ['application_type', dataForm.application_type],
+      const requiredFields: Array<[string, string, string]> = [
+        ['loan_amnt', dataForm.loan_amnt, '貸款金額'],
+        ['term', dataForm.term, '期限/期數'],
+        ['int_rate', dataForm.int_rate, '利率'],
+        ['installment', dataForm.installment, '分期付款金額'],
+        ['grade', dataForm.grade, '貸款等級'],
+        ['sub_grade', dataForm.sub_grade, '貸款子等級'],
+        ['emp_title', dataForm.emp_title, '職位名稱'],
+        ['emp_length', dataForm.emp_length, '職位年資'],
+        ['home_ownership', dataForm.home_ownership, '房屋所有權'],
+        ['annual_inc', dataForm.annual_inc, '年收入'],
+        ['verification_status', dataForm.verification_status, '驗證狀態'],
+        ['issue_d', dataForm.issue_d, '核發月份'],
+        ['application_type', dataForm.application_type, '申請類型'],
+        ['purpose', dataForm.purpose, '目的'],
+        ['dti', dataForm.dti, '債務收入比'],
+        ['earliest_cr_line', dataForm.earliest_cr_line, '最早信用紀錄月份'],
+        ['open_acc', dataForm.open_acc, '開立帳戶數'],
+        ['pub_rec', dataForm.pub_rec, '公共紀錄'],
+        ['revol_bal', dataForm.revol_bal, '循環餘額'],
+        ['revol_util', dataForm.revol_util, '循環使用率'],
       ]
 
+      // 檢核所有必填欄位
+      requiredFields.forEach(([key, value, label]) => {
+        if (!String(value || '').trim()) {
+          validationErrors.add(key)
+        }
+      })
+
+      // 如果有驗證錯誤,顯示提示並返回
+      if (validationErrors.size > 0) {
+        showValidationAlert.value = true
+        // 滾動到表單頂部
+        nextTick(() => {
+          const dialogBody = document.querySelector('.data-gen-dialog .el-dialog__body')
+          if (dialogBody) {
+            dialogBody.scrollTop = 0
+          }
+        })
+        return false
+      }
+      
+      // 數字驗證
       const requiredNumbers: Array<[string, number]> = [
         ['loan_amnt', toNum(dataForm.loan_amnt)],
         ['int_rate', toNum(dataForm.int_rate)],
@@ -579,17 +721,11 @@ export default {
         ['pub_rec_bankruptcies', toInt(dataForm.pub_rec_bankruptcies)],
       ]
 
-      // 檢核必填字串
-      const missing = requiredStrings.find(([k, v]) => !String(v || '').trim())
-      if (missing) {
-        ElMessage.error(`請填寫必要欄位：${missing[0]}`)
-        return
-      }
       // 檢核數字
       const invalidNum = requiredNumbers.find(([k, n]) => Number.isNaN(n))
       if (invalidNum) {
         ElMessage.error(`數值欄位格式錯誤：${invalidNum[0]}`)
-        return
+        return false
       }
 
       // 若使用月份選擇覆蓋原文字輸入
@@ -633,7 +769,13 @@ export default {
 
       emit('form-data-update', loanInput)
       ElMessage.success('已套用目前表單內容')
+      
+      // 清除驗證錯誤
+      validationErrors.clear()
+      showValidationAlert.value = false
+      
       dataDialogVisible.value = false
+      return true
     }
     
     // 檔案處理抽象
@@ -655,9 +797,11 @@ export default {
     }
     const handleSubmitAndChat = () => {
       // 先套用目前表單內容到父層的 formdata
-      handleApplyForm()
-      // 附帶固定訊息請模型依表單執行分析
-      emit('send', { text: '請用表單數據執行分析', files: [] })
+      const isValid = handleApplyForm()
+      // 只有在驗證通過時才發送訊息
+      if (isValid) {
+        emit('send', { text: '請用表單數據執行分析', files: [] })
+      }
     }
   const handleModelChange = (model: string) => { setModel(model) }
   // 初始模型通知（保險同步一次）
@@ -667,11 +811,14 @@ export default {
       triggerFileInput, handleFileChange, removeFile, handleSend, handleModelChange, canSend, isImage,
       dataDialogVisible, dataForm, openDataDialog, handleDataGenerate,
       termOptions, gradeOptions, homeOwnershipOptions, verificationStatusOptions, purposeOptions, subGradeOptions, applicationTypeOptions,
+      empTitleOptions,
       earliestCrLineMonth, issueMonth,
       handleApplyForm,
       handleSubmitAndChat,
       isMobile,
-      dialogWidth
+      dialogWidth,
+      validationErrors,
+      showValidationAlert
     }
   }
 }
@@ -833,12 +980,97 @@ export default {
   border-color: var(--border-color);
 }
 
+/* USD 幣別後綴樣式 - macOS 風格 */
+.currency-suffix {
+  color: #86868b;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  padding: 0 2px;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+/* 深色模式下的幣別樣式 */
+:deep(.dark) .currency-suffix {
+  color: #98989d;
+}
+
+/* Input append 區域樣式優化 */
+:deep(.el-input-group__append) {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-color: var(--border-color);
+  padding: 0 12px;
+  transition: all 0.2s ease;
+}
+
+:deep(.dark .el-input-group__append) {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Focus 狀態下的 append 區域 */
+:deep(.el-input.is-focus .el-input-group__append) {
+  border-color: #409eff;
+  background-color: rgba(64, 158, 255, 0.05);
+}
+
+:deep(.el-input.is-focus) .currency-suffix {
+  color: #409eff;
+}
+
 :deep(.el-input-number) {
   width: 100%;
 }
 
 :deep(.el-radio__label) {
   color: var(--text-color);
+}
+
+/* 驗證錯誤樣式 */
+.validation-alert {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  border-left: 4px solid #f56c6c;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(245, 108, 108, 0.15);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.validation-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.validation-alert-icon {
+  color: #f56c6c;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.validation-alert-text {
+  color: #f56c6c;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* 驗證錯誤的表單項目樣式 - 只標記 Label 為紅色 */
+.validation-error :deep(.el-form-item__label) {
+  color: #f56c6c !important;
+  transition: color 0.3s ease;
 }
 
 /* ========== 手機版 RWD 優化 ========== */
@@ -851,9 +1083,14 @@ export default {
   :deep(.data-gen-dialog.is-fullscreen) {
     width: 100vw !important;
     height: 100vh !important;
-    max-height: 100vh !important;
     border-radius: 0 !important;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  :deep(.data-gen-dialog.is-fullscreen .el-dialog__header) {
+    flex-shrink: 0;
   }
   
   :deep(.data-gen-dialog .el-dialog__header) {
@@ -868,10 +1105,41 @@ export default {
     max-height: calc(100vh - 140px);
   }
   
+  :deep(.data-gen-dialog.is-fullscreen .el-dialog__body) {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 16px 100px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  
   :deep(.data-gen-dialog .el-dialog__footer) {
     padding: 12px 16px;
     margin: 0;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  :deep(.data-gen-dialog.is-fullscreen .el-dialog__footer) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-shrink: 0;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    margin: 0;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    z-index: 10;
+  }
+  
+  :deep(.dark .data-gen-dialog.is-fullscreen .el-dialog__footer) {
+    background: rgba(30, 30, 30, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
   }
   
   /* 表單容器 */
@@ -944,29 +1212,53 @@ export default {
     width: 100% !important;
   }
   
-  /* Dialog footer 按鈕縱向排列 */
+  /* Dialog footer 按鈕單列橫向排列 */
   .dialog-footer {
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    gap: 8px;
     width: 100%;
+    align-items: center;
   }
   
-  .dialog-footer .left-actions,
-  .dialog-footer .right-actions {
+  .dialog-footer .left-actions {
+    flex: 2;
+    display: flex;
+  }
+  
+  .dialog-footer .left-actions .el-button {
     width: 100%;
+    margin: 0 !important;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  
+  .dialog-footer .right-actions {
+    flex: 1;
     display: flex;
     gap: 8px;
   }
   
-  .dialog-footer .right-actions {
-    flex-direction: column;
-  }
-  
-  .dialog-footer .el-button {
+  .dialog-footer .right-actions .el-button {
     flex: 1;
     margin: 0 !important;
-    height: 44px;
-    font-size: 15px;
+    height: 48px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  /* 手機版 USD 幣別樣式優化 */
+  .currency-suffix {
+    font-size: 12px;
+    padding: 0 1px;
+  }
+  
+  :deep(.el-input-group__append) {
+    padding: 0 10px;
+    min-width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -1006,6 +1298,88 @@ export default {
   .dialog-footer .el-button {
     height: 42px;
     font-size: 14px;
+  }
+}
+</style>
+
+<style>
+/* 全局樣式 - 手機版固定底部按鈕 */
+@media (max-width: 768px) {
+  /* Dialog 容器設為 flex 佈局 */
+  .el-dialog__wrapper.is-fullscreen {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .el-dialog__wrapper.is-fullscreen .data-gen-dialog {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    width: 100vw !important;
+  }
+  
+  /* Header 固定高度 */
+  .el-dialog__wrapper.is-fullscreen .data-gen-dialog .el-dialog__header {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+  
+  /* Body 可滾動區域 */
+  .el-dialog__wrapper.is-fullscreen .data-gen-dialog .el-dialog__body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 20px 16px !important;
+    padding-bottom: 100px !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: relative !important;
+  }
+  
+  /* Footer 固定在底部 - 使用多重選擇器強制覆蓋 */
+  .el-dialog__wrapper.is-fullscreen .data-gen-dialog .el-dialog__footer,
+  .el-dialog__wrapper.is-fullscreen .el-dialog__footer,
+  .data-gen-dialog .el-dialog__footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 0 !important;
+    padding: 12px 16px !important;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    margin: 0 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    z-index: 9999 !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+  }
+  
+  /* Debug: 臨時紅色背景確認元素位置 */
+  .el-dialog__wrapper.is-fullscreen .data-gen-dialog .el-dialog__footer::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: linear-gradient(to right, #ff0000, #ff6b6b) !important;
+    z-index: 10000 !important;
+  }
+  
+  .dark .el-dialog__wrapper.is-fullscreen .data-gen-dialog .el-dialog__footer {
+    background: rgba(30, 30, 30, 0.95) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4) !important;
   }
 }
 </style>

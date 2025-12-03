@@ -171,7 +171,7 @@ const fieldLabels: Record<string, string> = {
   open_acc: '開立帳戶數',
   pub_rec: '公共紀錄',
   revol_bal: '循環餘額',
-  revol_util: '循環使用率',
+  revol_util: '循環使用率(%)',
   total_acc: '累積帳戶總數',
   mort_acc: '抵押貸款戶數',
   pub_rec_bankruptcies: '破產紀錄次數',

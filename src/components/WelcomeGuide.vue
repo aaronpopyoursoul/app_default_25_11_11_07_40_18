@@ -40,7 +40,7 @@
                 <el-icon class="card-icon"><ChatDotRound /></el-icon>
               </div>
               <div class="card-body">
-                <h3 class="card-title">智能貸款還款能力分析</h3>
+                <h3 class="card-title">個人貸款/還款能力智能評價系統</h3>
                 <div class="card-stat">
                   <span class="stat-value">98%</span>
                   <span class="stat-label">Accuracy</span>
@@ -59,7 +59,7 @@
                 <el-icon class="card-icon"><User /></el-icon>
               </div>
               <div class="card-body">
-                <h3 class="card-title">CSR 智能履歷分析</h3>
+                <h3 class="card-title">人才技能量化及精準洞察系統</h3>
                 <div class="card-stat">
                   <span class="stat-value">+45%</span>
                   <span class="stat-label">Efficiency</span>
