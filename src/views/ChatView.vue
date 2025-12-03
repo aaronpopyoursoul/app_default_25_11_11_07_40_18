@@ -104,13 +104,15 @@
           <el-descriptions :column="2" border class="snapshot-descriptions">
             <template v-for="key in group.keys" :key="key">
               <el-descriptions-item v-if="(formSnapshots[activeSnapshotId] as any)[key]" :label="fieldLabels[key] || key">
-                <span>
+                <span v-if="key === 'loan_amnt' || key === 'installment' || key === 'annual_inc' || key === 'revol_bal'" class="currency-value">
+                  <span class="currency-number">{{ formatCurrency((formSnapshots[activeSnapshotId] as any)[key]) }}</span>
+                  <span class="currency-unit">USD</span>
+                </span>
+                <span v-else>
                   {{
-                    key === 'loan_amnt' || key === 'installment' || key === 'annual_inc' || key === 'revol_bal'
-                      ? formatCurrency((formSnapshots[activeSnapshotId] as any)[key])
-                      : key === 'int_rate' || key === 'revol_util' || key === 'dti'
-                        ? formatPercent((formSnapshots[activeSnapshotId] as any)[key])
-                        : toLabel(key, (formSnapshots[activeSnapshotId] as any)[key])
+                    key === 'int_rate' || key === 'revol_util' || key === 'dti'
+                      ? formatPercent((formSnapshots[activeSnapshotId] as any)[key])
+                      : toLabel(key, (formSnapshots[activeSnapshotId] as any)[key])
                   }}
                 </span>
               </el-descriptions-item>
@@ -475,6 +477,10 @@ const formatCurrency = (n: number | string): string => {
   const num = Number(n)
   if (isNaN(num)) return String(n)
   return num.toLocaleString('en-US')
+}
+const formatCurrencyWithUSD = (n: number | string): string => {
+  const formatted = formatCurrency(n)
+  return formatted
 }
 const formatPercent = (n: number | string): string => {
   const num = Number(n)
@@ -862,5 +868,24 @@ const snapshotGroups: Array<{ title: string; keys: string[] }> = [
 }
 :deep(.el-descriptions__label){
   font-weight: 500;
+}
+
+/* 金額顯示樣式 */
+.currency-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.currency-number {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.currency-unit {
+  font-size: 0.85em;
+  color: #999;
+  font-weight: 400;
+  letter-spacing: 0.3px;
 }
 </style>
