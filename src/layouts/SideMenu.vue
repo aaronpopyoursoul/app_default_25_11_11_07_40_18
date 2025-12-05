@@ -298,9 +298,24 @@ const menuItems = [
 }
 
 /* RWD 響應式 */
-@media (max-width: 1024px) {
-  .app-menu {
-    width: 280px;
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* 中等螢幕：展開時保持 280px，收合時縮小至 64px */
+  .app-menu[style*="width: 72px"] {
+    width: 64px !important;
+  }
+  
+  .app-menu[style*="width: 280px"] {
+    width: 260px !important;
+  }
+  
+  /* 收合狀態優化 */
+  .menu-toggle.menu-collapsed {
+    padding: 12px 4px;
+  }
+  
+  /* 選單項目收合時優化 */
+  .menu-item.is-collapsed {
+    padding: 12px 8px;
   }
 }
 

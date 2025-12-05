@@ -45,11 +45,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, provide } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import HeaderBar from '@/layouts/HeaderBar.vue'
 import SideMenu from '@/layouts/SideMenu.vue'
 import AppFooter from '@/layouts/AppFooter.vue'
 import WelcomeGuide from '@/components/WelcomeGuide.vue'
 
+const router = useRouter()
+const route = useRoute()
 const menuOpened = ref(true)
 const windowWidth = ref(window.innerWidth)
 const welcomeGuideRef = ref()
@@ -84,9 +87,53 @@ const handleResize = () => {
   }
 }
 
+// 防止上一頁與重新整理，強制回到首頁
+const preventNavigationAndRefresh = () => {
+  // 處理瀏覽器上一頁按鈕
+  const handlePopState = (event: PopStateEvent) => {
+    event.preventDefault()
+    router.replace('/chat')
+  }
+  
+  // 處理重新整理
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    // 儲存當前路徑，重新整理後跳轉到首頁
+    sessionStorage.setItem('shouldRedirectToHome', 'true')
+  }
+  
+  window.addEventListener('popstate', handlePopState)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+  
+  // 檢查是否是重新整理後進入
+  if (sessionStorage.getItem('shouldRedirectToHome') === 'true') {
+    sessionStorage.removeItem('shouldRedirectToHome')
+    if (route.path !== '/chat') {
+      router.replace('/chat')
+    }
+  }
+  
+  // 添加歷史記錄狀態，防止回到上一頁
+  if (window.history.state === null || !window.history.state.key) {
+    window.history.pushState({ page: 'home' }, '', window.location.href)
+  }
+  
+  return () => {
+    window.removeEventListener('popstate', handlePopState)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+  }
+}
+
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   handleResize() // 初始化狀態
+  
+  // 啟動防止上一頁與重新整理功能
+  const cleanup = preventNavigationAndRefresh()
+  
+  // 確保清理函數在卸載時執行
+  onUnmounted(() => {
+    cleanup()
+  })
 })
 
 onUnmounted(() => {

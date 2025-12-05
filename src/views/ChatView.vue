@@ -12,7 +12,7 @@
       <h2 class="title">
         <div class="title-content">
           <span class="title-icon">💳</span>
-          <span class="title-text">智能貸款還款能力分析</span>
+          <span class="title-text">個人貸款/還款能力智能評價系統</span>
         </div>
         <el-icon class="help-icon" @click="showGuideDialog = true"><QuestionFilled /></el-icon>
       </h2>

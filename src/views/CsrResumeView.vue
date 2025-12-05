@@ -11,7 +11,7 @@
       <h2 class="title">
         <div class="title-content">
           <span class="title-icon">📋</span>
-          <span class="title-text">CSR 智能履歷分析</span>
+          <span class="title-text">人才技能量化及精準洞察系統</span>
         </div>
         <el-icon class="help-icon" @click="showGuideDialog = true"><QuestionFilled /></el-icon>
       </h2>
@@ -946,7 +946,52 @@ async function startAnalyze() {
   } 
 }
 
-/* 響應式：小螢幕自動堆疊 */
+/* 響應式：中等螢幕優化 (768px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  /* 上傳區內的檔案改為垂直排列 */
+  .upload-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  /* 檔案上傳框：增加高度，避免內容擠壓 */
+  .file-upload-area {
+    min-height: 46px;
+    height: auto;
+  }
+  
+  /* 上傳區：優化內邊距 */
+  .upload-section {
+    padding: 14px;
+  }
+  
+  /* 配置執行區改為垂直堆疊 */
+  .config-action-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  /* 選擇器區：保持橫向並排，優化間距 */
+  .selector-section {
+    padding: 14px;
+  }
+  
+  .selector-row {
+    gap: 12px;
+  }
+  
+  /* 按鈕區：全寬顯示，保持合適高度 */
+  .action-section {
+    min-width: 100%;
+  }
+  
+  .analyze-btn {
+    height: 48px;
+    font-size: 14px;
+  }
+}
+
+/* 響應式：小螢幕自動堆疊 (< 768px) */
 @media (max-width: 768px) {
   .main-sections-row {
     grid-template-columns: 1fr;
