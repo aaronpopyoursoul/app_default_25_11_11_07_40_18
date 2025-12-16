@@ -60,7 +60,7 @@ const menuItems = [
   {
     path: '/csr',
     title: 'CSR 智能履歷分析',
-    description: 'AI 精準配對職缺與人才，提升招聘效率',
+    description: 'AI 精準配對職缺與人才',
     icon: User
   }
 ]
