@@ -781,7 +781,7 @@ export default {
     // 檔案處理抽象
     const { files, onFileChange, removeFile, isImage } = useFileUploads({ maxSizeMB: 10 })
     // 模型選擇抽象（維持外部 emit）
-    const { selectedModel, setModel } = useModelSelection('GPT-5 mini', (m) => emit('model-change', m))
+    const { selectedModel, setModel } = useModelSelection('gpt-4o-mini', (m) => emit('model-change', m))
     // 直接引用集中管理的模型常數（保持行為不變）
     const modelOptions = MODEL_OPTIONS
   const fileInput = ref<HTMLInputElement | null>(null)
