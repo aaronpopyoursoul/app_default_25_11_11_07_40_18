@@ -16,7 +16,9 @@
   "license": "MIT",
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "docx": "^9.5.1",
     "element-plus": "^2.3.9",
+    "file-saver": "^2.0.5",
     "vue": "^3.2.47",
     "vue-router": "^4.6.3"
   },

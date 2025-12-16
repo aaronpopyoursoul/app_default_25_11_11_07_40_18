@@ -1,7 +1,23 @@
 <template>
-  <div v-if="message.type === 'ai'" class="chat-message ai">
+  <div 
+    v-if="message.type === 'ai'" 
+    class="chat-message ai"
+    :data-message-kind="message.content.meta?.messageKind"
+  >
     <img :src="aiAvatar" alt="AI" class="avatar" />
     <div class="chat-bubble">
+      <!-- 下載按鈕 - 僅在 answer 類型訊息顯示 -->
+      <button 
+        v-if="isAnswerKind" 
+        :class="['download-btn', { downloading: isDownloading }]"
+        @click="handleDownload"
+        :disabled="isDownloading"
+        :title="isDownloading ? '報告生成中...' : '下載分析報告 (Word)'"
+      >
+        <el-icon v-if="!isDownloading" class="download-icon"><Download /></el-icon>
+        <el-icon v-else class="loading-icon"><Loading /></el-icon>
+      </button>
+      
       <div class="content-text" v-if="message.content.text">
         <div v-if="isResultKind" v-html="renderResultTable(message.content.text)" class="result-table"></div>
         <div v-else-if="isUsageInfoKind" v-html="renderUsageInfo(message.content.text)" class="usage-info"></div>
@@ -114,7 +130,8 @@ import { defineComponent, computed, ref } from 'vue'
 import aiAvatar from '@/assets/avatar-ai.svg'
 import userAvatar from '@/assets/avatar-chloe.jpg'
 import type { ChatMessage as ChatMessageType, ChatFile } from '@/types/chat'
-import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
+import { ArrowDown, Download, Loading } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 export default defineComponent({
   name: 'ChatMessage',
@@ -128,7 +145,7 @@ export default defineComponent({
       default: false
     }
   },
-  emits: ['show-form', 'send-question'],
+  emits: ['show-form', 'send-question', 'download-report'],
   setup(props, { emit }){
     const formattedTimestamp = computed(() => {
       if (!props.message.timestamp) return ''
@@ -140,6 +157,29 @@ export default defineComponent({
     const isHtmlContent = computed(() => !!props.message.content.meta?.isHtml)
     const isResultKind = computed(() => props.message.content.meta?.messageKind === 'result')
     const isUsageInfoKind = computed(() => props.message.content.meta?.messageKind === 'usage-info')
+    const isAnswerKind = computed(() => props.message.content.meta?.messageKind === 'answer')
+    
+    // 下載功能
+    const isDownloading = ref(false)
+    
+    const handleDownload = async () => {
+      if (isDownloading.value) return
+      
+      isDownloading.value = true
+      try {
+        // 觸發父組件的下載事件
+        emit('download-report', props.message.id)
+      } catch (error) {
+        console.error('下載失敗:', error)
+        ElMessage.error('下載失敗，請稍後再試')
+        isDownloading.value = false
+      }
+    }
+    
+    // 重置下載狀態 (由父組件調用)
+    const resetDownloadState = () => {
+      isDownloading.value = false
+    }
     
     // 格式化使用者訊息文字 - 保留換行
     function formatUserText(text: string): string {
@@ -219,8 +259,19 @@ export default defineComponent({
         const parsed = JSON.parse(text)
         if (!Array.isArray(parsed) || parsed.length === 0) return `<pre>${text}</pre>`
         const keys = Object.keys(parsed[0])
+        
+        // 欄位名稱中英文對照
+        const columnNameMap: Record<string, string> = {
+          'desc': '分析原因',
+          'name': '符合JD需求項目',
+          'score': '得分'
+        }
+        
         let html = '<table class="result-data-table"><thead><tr>'
-        keys.forEach(k => { html += `<th>${k}</th>` })
+        keys.forEach(k => { 
+          const displayName = columnNameMap[k] || k
+          html += `<th>${displayName}</th>` 
+        })
         html += '</tr></thead><tbody>'
         parsed.forEach(row => {
           html += '<tr>'
@@ -298,21 +349,41 @@ export default defineComponent({
       return `${percentage}%`
     }
     
-    const emitShowForm = (id: string) => emit('show-form', id)
-    
-    // 處理建議問題點擊
+    // 觸發建議問題
     const handleQuestionClick = (question: string) => {
-      if (props.disabled) return
       emit('send-question', question)
     }
-
+    
+    // 觸發查看表單
+    const emitShowForm = (formId: string) => {
+      emit('show-form', formId)
+    }
+    
     return { 
-      aiAvatar, userAvatar, formattedTimestamp, isImage, 
-      isHtmlContent, isResultKind, isUsageInfoKind,
-      formatTextContent, formatUserText, renderResultTable, renderUsageInfo, decodeHtml,
-      getRiskText, getRiskIcon, getRiskClass, getImpactWidth,
-      isPredictionExpanded, togglePrediction,
-      ArrowDown, ArrowUp, emitShowForm, handleQuestionClick
+      formattedTimestamp, 
+      isImage, 
+      isHtmlContent, 
+      isResultKind, 
+      isUsageInfoKind,
+      isAnswerKind,
+      isDownloading,
+      handleDownload,
+      resetDownloadState,
+      formatUserText, 
+      formatTextContent, 
+      decodeHtml, 
+      renderResultTable, 
+      renderUsageInfo, 
+      aiAvatar, 
+      userAvatar,
+      isPredictionExpanded,
+      togglePrediction,
+      getRiskText,
+      getRiskIcon,
+      getRiskClass,
+      getImpactWidth,
+      handleQuestionClick,
+      emitShowForm
     }
   }
 })
@@ -324,6 +395,128 @@ export default defineComponent({
 .chat-message.user{ justify-content:flex-end; }
 .avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--card-bg); box-shadow:0 1px 3px rgba(0,0,0,.15); flex-shrink:0; }
 .chat-bubble{ position:relative; max-width:80%; min-width:120px; display:inline-block; padding:10px 14px 18px; background:var(--ai-msg-bg); border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.12); word-break:break-word; line-height:1.4; animation:bubbleIn .35s ease; }
+
+/* 下載按鈕 - 更顯眼的設計 */
+.download-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  border: none;
+  background: linear-gradient(135deg, #007AFF 0%, #0A84FF 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3),
+              0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.download-btn:hover {
+  background: linear-gradient(135deg, #0A84FF 0%, #0E8FFF 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.4),
+              0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+.download-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.25);
+}
+
+.download-btn.downloading {
+  background: linear-gradient(135deg, #5AC8FA 0%, #4AB8EA 100%);
+  cursor: wait;
+  animation: pulse-download 1.5s ease-in-out infinite;
+}
+
+.download-icon {
+  font-size: 16px;
+  color: white;
+  transition: transform 0.25s ease;
+}
+
+.download-btn:hover .download-icon {
+  transform: translateY(2px);
+}
+
+.loading-icon {
+  font-size: 16px;
+  color: white;
+  animation: spin 1s linear infinite;
+}
+
+/* 顯示文字提示 */
+.download-btn::after {
+  content: '下載報告';
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.download-btn:hover::after {
+  opacity: 1;
+  max-width: 100px;
+  margin-left: 2px;
+}
+
+.download-btn.downloading::after {
+  content: '生成中...';
+  opacity: 1;
+  max-width: 100px;
+  margin-left: 2px;
+}
+
+@keyframes pulse-download {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(90, 200, 250, 0.3),
+                0 1px 0 rgba(255, 255, 255, 0.2) inset;
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(90, 200, 250, 0.5),
+                0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 手機版優化 */
+@media (max-width: 768px) {
+  .download-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 14px;
+  }
+  
+  .download-btn::after {
+    display: none;
+  }
+  
+  .download-btn.downloading::after {
+    display: none;
+  }
+}
+
 .chat-message.user .chat-bubble{ background:var(--user-msg-bg); }
 .chat-message.ai .chat-bubble:before,.chat-message.user .chat-bubble:before{ content:''; position:absolute; top:14px; width:12px; height:12px; background:currentColor; transform:rotate(45deg); }
 .chat-message.ai .chat-bubble{ color:var(--ai-msg-bg); }

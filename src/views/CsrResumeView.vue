@@ -17,7 +17,13 @@
       </h2>
       <div ref="messagesContainer" class="messages-container">
         <transition-group name="message-fade" tag="div">
-          <ChatMessage v-for="m in messages" :key="m.id" :message="m" />
+          <ChatMessage 
+            v-for="m in messages" 
+            :key="m.id" 
+            :ref="el => setMessageRef(m.id, el)"
+            :message="m" 
+            @download-report="handleDownloadReport"
+          />
         </transition-group>
         <div v-if="isAnalyzing" class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
       </div>
@@ -39,7 +45,7 @@
                   <div class="file-info">
                     <span class="file-icon">📄</span>
                     <div class="file-details">
-                      <span class="file-name-display">{{ jdFile.name }}</span>
+                      <span class="file-name-display" :title="jdFile.name">{{ jdFile.name }}</span>
                       <span class="file-size">{{ formatFileSize(jdFile.size) }}</span>
                     </div>
                   </div>
@@ -58,7 +64,7 @@
                   <div class="file-info">
                     <span class="file-icon">📄</span>
                     <div class="file-details">
-                      <span class="file-name-display">{{ resumeFile.name }}</span>
+                      <span class="file-name-display" :title="resumeFile.name">{{ resumeFile.name }}</span>
                       <span class="file-size">{{ formatFileSize(resumeFile.size) }}</span>
                     </div>
                   </div>
@@ -82,7 +88,7 @@
                 <div class="selector-item">
                   <label class="compact-label">Version</label>
                   <el-select v-model="version" size="small" class="version-select" placeholder="請選擇版本">
-                    <el-option v-for="v in versions" :key="v" :label="v" :value="v" />
+                    <el-option v-for="v in versions" :key="v.value" :label="v.label" :value="v.value" />
                   </el-select>
                 </div>
               </div>
@@ -174,6 +180,8 @@ import { useNotifier } from '@/hooks/useNotifier'
 import { analyzeCsr } from '@/hooks/useCsrApi'
 import type { CsrApiResponse } from '@/types/csr'
 import type { ChatMessage as ChatMessageType } from '@/types/chat'
+import { generateCsrReportDocx } from '@/utils/docxGenerator'
+import { ElMessage } from 'element-plus'
 
 // 設定組件名稱以支援 KeepAlive
 defineOptions({
@@ -279,7 +287,10 @@ const resumeFile = ref<File | null>(null)
 // 使用集中模型常數（保留 icon 與 description）
 const modelOptions = MODEL_OPTIONS
 const model = ref(modelOptions[0].value)
-const versions = ['1.0', '1.1', '2.0']
+const versions = [
+  { label: '1.1', value: '1.1' },
+  { label: '2.0(RAG)', value: '2.0' }
+]
 const version = ref('1.1')
 const isAnalyzing = ref(false)
 const messages = ref<ChatMessageType[]>([])
@@ -366,8 +377,9 @@ async function startAnalyze() {
     let answerText = (data.answer && data.answer.trim().length) ? data.answer : '（無分析內容）'
     answerText = cleanMarkdownCodeBlocks(answerText)
     
+    const answerMessageId = Date.now() + '-ai-answer'
     messages.value.push({
-      id: Date.now() + '-ai-answer',
+      id: answerMessageId,
       type: 'ai',
       content: { 
         text: answerText, 
@@ -376,9 +388,6 @@ async function startAnalyze() {
       },
       timestamp: new Date()
     })
-    
-    // 情境 3：多段訊息 → 只滾動到第一段（answer）的開頭
-    forceScrollToLatestMessage()
 
     // 2) Result：獨立一則訊息；若缺則提示（直接展開，不折疊）
     if (data.result !== undefined && data.result !== null) {
@@ -406,6 +415,36 @@ async function startAnalyze() {
         timestamp: new Date()
       })
     }
+    
+    // 情境 3：多段訊息 → 等所有訊息加入後，滾動到 answer 訊息的開頭
+    nextTick(() => {
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          const container = messagesContainer.value
+          if (!container) return
+          
+          // 使用 data attribute 精確找到 answer 訊息
+          const answerMessages = container.querySelectorAll('.chat-message[data-message-kind="answer"]')
+          const answerMessageElement = answerMessages[answerMessages.length - 1] as HTMLElement
+          
+          if (answerMessageElement) {
+            const messageTop = answerMessageElement.offsetTop
+            const offset = 80
+            
+            console.log('滾動到 answer 訊息:', messageTop, 'offset:', offset)
+            
+            container.scrollTo({
+              top: Math.max(0, messageTop - offset),
+              behavior: 'smooth'
+            })
+          } else {
+            // Fallback: 使用原有方法
+            console.warn('找不到 answer 訊息,使用 fallback')
+            forceScrollToLatestMessage()
+          }
+        })
+      })
+    })
 
     // 3) Usage & Info：
     const formatUsd = (v: any) => {
@@ -442,6 +481,77 @@ async function startAnalyze() {
     forceScroll()
   } finally {
     isAnalyzing.value = false
+  }
+}
+
+// 儲存 message 組件的引用
+const messageRefs = new Map<string, any>()
+
+function setMessageRef(messageId: string, el: any) {
+  if (el) {
+    messageRefs.set(messageId, el)
+  }
+}
+
+// 處理下載報告
+async function handleDownloadReport(messageId: string) {
+  try {
+    // 找到對應的 answer 訊息
+    const answerMessage = messages.value.find(m => m.id === messageId && m.content.meta?.messageKind === 'answer')
+    if (!answerMessage) {
+      ElMessage.error('找不到分析結果')
+      const messageComponent = messageRefs.get(messageId)
+      if (messageComponent?.resetDownloadState) {
+        messageComponent.resetDownloadState()
+      }
+      return
+    }
+
+    // 找到對應的 result 訊息
+    const resultMessage = messages.value.find(m => m.content.meta?.messageKind === 'result')
+    let resultData: any[] = []
+    
+    if (resultMessage && resultMessage.content.text) {
+      try {
+        resultData = JSON.parse(resultMessage.content.text)
+      } catch {
+        // 如果解析失敗，使用空陣列
+        resultData = []
+      }
+    }
+
+    // 生成 Word 文件
+    await generateCsrReportDocx({
+      jdFileName: jdFile.value?.name || 'Unknown',
+      resumeFileName: resumeFile.value?.name || 'Unknown',
+      model: model.value,
+      version: version.value,
+      timestamp: answerMessage.timestamp || new Date(),
+      answer: answerMessage.content.text,
+      result: resultData
+    })
+
+    // 下載完成後才顯示成功訊息
+    ElMessage.success({
+      message: '報告下載成功!',
+      duration: 3000,
+      showClose: true
+    })
+    
+    // 重置下載按鈕狀態
+    const messageComponent = messageRefs.get(messageId)
+    if (messageComponent?.resetDownloadState) {
+      messageComponent.resetDownloadState()
+    }
+  } catch (error) {
+    console.error('下載報告失敗:', error)
+    ElMessage.error('下載報告失敗，請稍後再試')
+    
+    // 發生錯誤時也要重置狀態
+    const messageComponent = messageRefs.get(messageId)
+    if (messageComponent?.resetDownloadState) {
+      messageComponent.resetDownloadState()
+    }
   }
 }
 </script>
@@ -522,7 +632,14 @@ async function startAnalyze() {
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   border-radius: 16px; 
-  padding: 12px; 
+  padding: 12px;
+  overflow: hidden; /* 防止子元素溢出 */
+}
+
+.form-card {
+  flex-shrink: 0; /* 防止表單卡片被壓縮 */
+  width: 100%; /* 確保寬度不超過父容器 */
+  box-sizing: border-box; /* 包含 padding 和 border 在寬度計算內 */
 }
 
 .title { 
@@ -589,6 +706,8 @@ async function startAnalyze() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%; /* 確保不超出父容器 */
+  box-sizing: border-box;
 }
 
 /* 主要區域並排容器：上傳區 50% + 配置執行區 50% */
@@ -597,6 +716,8 @@ async function startAnalyze() {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: stretch;
+  width: 100%; /* 確保不超出父容器 */
+  box-sizing: border-box;
 }
 
 /* 配置執行區：包含選擇器和按鈕 */
@@ -604,6 +725,9 @@ async function startAnalyze() {
   display: flex;
   gap: 12px;
   align-items: stretch;
+  width: 100%; /* 確保不超出父容器 */
+  box-sizing: border-box;
+  min-width: 0; /* 允許子元素收縮 */
 }
 
 /* 檔案上傳區段: macOS Sonoma 風格 */
@@ -619,6 +743,9 @@ async function startAnalyze() {
   -webkit-backdrop-filter: blur(10px) saturate(150%);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 
               inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* 允許收縮 */
 }
 
 .upload-section:hover {
@@ -640,6 +767,7 @@ async function startAnalyze() {
 .file-upload-area {
   position: relative;
   flex: 1;
+  min-width: 0; /* 關鍵：允許 flex 子元素收縮 */
   height: 44px;
   border: 1.5px dashed rgba(0, 0, 0, 0.15);
   border-radius: 8px;
@@ -649,7 +777,24 @@ async function startAnalyze() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 12px;
+  padding: 0 10px; /* 減少內邊距 */
+  /* 觸控優化 */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden; /* 防止溢出 */
+}
+
+/* 針對觸控設備優化點擊區域 */
+@media (hover: none) and (pointer: coarse) {
+  .file-upload-area {
+    min-height: 48px; /* 觸控設備增加高度 */
+    height: auto;
+  }
+  
+  .analyze-btn {
+    min-height: 48px; /* 觸控設備增加高度 */
+  }
 }
 
 .file-upload-area:hover {
@@ -703,16 +848,20 @@ async function startAnalyze() {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 8px;
+  gap: 6px; /* 減少間距 */
   flex-wrap: nowrap;
+  overflow: hidden; /* 防止內容溢出 */
+  min-width: 0; /* 允許 flex 子元素收縮 */
 }
 
 .file-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px; /* 減少間距 */
   flex: 1;
-  min-width: 0;
+  min-width: 0; /* 允許收縮 */
+  overflow: hidden; /* 防止溢出 */
+  max-width: calc(100% - 24px); /* 預留刪除按鈕空間 */
 }
 
 .file-icon {
@@ -724,25 +873,38 @@ async function startAnalyze() {
 .file-details {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px; /* 減少間距 */
   min-width: 0;
   flex: 1;
+  overflow: hidden; /* 確保子元素不會溢出 */
+  max-width: 100%;
 }
 
 .file-name-display {
-  font-size: 12px;
+  font-size: 11px; /* 略微縮小字體 */
   font-weight: 500;
   color: var(--text-color);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: ellipsis; /* 關鍵：自動省略號 */
+  flex: 1; /* 佔據可用空間 */
+  min-width: 0; /* 關鍵：允許收縮 */
+  max-width: 100%;
+  cursor: help; /* 顯示問號游標提示有 tooltip */
+  transition: color 0.2s ease;
+}
+
+.file-name-display:hover {
+  color: #007AFF; /* hover 時變色提示可查看完整名稱 */
 }
 
 .file-size {
-  font-size: 10px;
+  font-size: 9px; /* 縮小檔案大小字體 */
   color: var(--text-color);
   opacity: 0.6;
   white-space: nowrap;
+  flex-shrink: 0; /* 檔案大小不被壓縮 */
+  min-width: fit-content; /* 確保完整顯示 */
 }
 
 .delete-icon {
@@ -795,6 +957,8 @@ async function startAnalyze() {
   -webkit-backdrop-filter: blur(10px) saturate(150%);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
               inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  min-width: 0; /* 允許收縮 */
+  box-sizing: border-box;
 }
 
 .selector-section:hover {
@@ -809,6 +973,7 @@ async function startAnalyze() {
   display: flex;
   gap: 12px;
   flex: 1;
+  min-width: 0; /* 允許收縮 */
 }
 
 .selector-item {
@@ -816,7 +981,7 @@ async function startAnalyze() {
   flex-direction: column;
   gap: 6px;
   flex: 1;
-  min-width: 0;
+  min-width: 0; /* 允許收縮並啟用 text-overflow */
 }
 
 /* Label 樣式 */
@@ -832,10 +997,14 @@ async function startAnalyze() {
 /* 選擇器全寬 */
 .full-width-selector {
   width: 100%;
+  min-width: 0; /* 允許收縮 */
+  box-sizing: border-box;
 }
 
 .version-select { 
   width: 100%;
+  min-width: 0; /* 允許收縮 */
+  box-sizing: border-box;
 }
 
 /* 按鈕區：緊湊化 */
@@ -844,6 +1013,9 @@ async function startAnalyze() {
   align-items: center;
   justify-content: center;
   min-width: 140px;
+  max-width: 180px; /* 限制最大寬度 */
+  flex-shrink: 0; /* 防止按鈕被過度壓縮 */
+  box-sizing: border-box;
 }
 
 /* macOS Sonoma 主要操作按鈕：緊湊化高度 */
@@ -865,6 +1037,11 @@ async function startAnalyze() {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  box-sizing: border-box;
+  /* 觸控優化 */
+  min-height: 44px; /* iOS 推薦的最小觸控目標 */
+  -webkit-tap-highlight-color: transparent; /* 移除 iOS 點擊高亮 */
+  user-select: none; /* 防止文字選取 */
 }
 
 .analyze-btn:not(:disabled):hover {
@@ -881,11 +1058,28 @@ async function startAnalyze() {
   transform: translateY(0);
 }
 
+/* 分析中狀態 - 使用藍色漸變保持視覺連續性 */
 .analyze-btn:disabled {
-  background: linear-gradient(to bottom, rgba(174, 174, 178, 0.3), rgba(174, 174, 178, 0.25));
-  box-shadow: none;
-  opacity: 0.5;
-  cursor: not-allowed;
+  background: linear-gradient(to bottom, #5AC8FA 0%, #4AB8EA 100%);
+  border-color: rgba(90, 200, 250, 0.3);
+  box-shadow: 0 2px 6px rgba(90, 200, 250, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  opacity: 1; /* 保持完全不透明 */
+  cursor: wait; /* 等待游標 */
+  color: #FFFFFF;
+  animation: pulse-analyzing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 分析中脈動動畫 */
+@keyframes pulse-analyzing {
+  0%, 100% {
+    box-shadow: 0 2px 6px rgba(90, 200, 250, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(90, 200, 250, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
 }
 
 /* 聊天卡片 */
@@ -946,8 +1140,47 @@ async function startAnalyze() {
   } 
 }
 
-/* 響應式：中等螢幕優化 (768px - 1024px) */
+/* 響應式：大螢幕優化 (1025px - 1280px) - 開始出現擠壓時的過渡 */
+@media (max-width: 1280px) and (min-width: 1025px) {
+  .main-sections-row {
+    gap: 12px;
+  }
+  
+  .selector-section {
+    padding: 10px 12px;
+  }
+  
+  .selector-row {
+    gap: 10px;
+  }
+  
+  .compact-label {
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+  
+  .analyze-btn {
+    font-size: 13px;
+    padding: 0 16px;
+  }
+}
+
+/* 響應式：中等螢幕優化 (769px - 1024px) - 改為垂直堆疊 */
 @media (max-width: 1024px) and (min-width: 769px) {
+  .form-card {
+    padding: 12px;
+  }
+  
+  .compact-form {
+    gap: 14px;
+  }
+  
+  /* 主要區域改為垂直堆疊 */
+  .main-sections-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  
   /* 上傳區內的檔案改為垂直排列 */
   .upload-row {
     flex-direction: column;
@@ -965,13 +1198,80 @@ async function startAnalyze() {
     padding: 14px;
   }
   
-  /* 配置執行區改為垂直堆疊 */
+  /* 配置執行區：橫向排列選擇器和按鈕 */
+  .config-action-section {
+    flex-direction: row;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  /* 選擇器區：佔據較大空間 */
+  .selector-section {
+    flex: 1.5;
+    padding: 14px;
+  }
+  
+  .selector-row {
+    gap: 12px;
+  }
+  
+  /* 按鈕區：固定寬度 */
+  .action-section {
+    min-width: 140px;
+    max-width: 160px;
+  }
+  
+  .analyze-btn {
+    height: 100%;
+    font-size: 14px;
+    padding: 0 16px;
+  }
+}
+
+/* 響應式：平板螢幕 (601px - 768px) - 完全垂直佈局 */
+@media (max-width: 768px) and (min-width: 601px) {
+  .csr-view {
+    padding: 10px;
+    gap: 12px;
+  }
+  
+  .form-card, .chat-card {
+    padding: 12px;
+  }
+  
+  .compact-form {
+    gap: 14px;
+  }
+  
+  /* 主要區域垂直堆疊 */
+  .main-sections-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  
+  /* 上傳區：檔案垂直排列 */
+  .upload-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .file-upload-area {
+    min-height: 48px;
+    height: auto;
+    padding: 12px;
+  }
+  
+  .upload-section {
+    padding: 14px;
+  }
+  
+  /* 配置執行區：垂直堆疊 */
   .config-action-section {
     flex-direction: column;
     gap: 12px;
   }
   
-  /* 選擇器區：保持橫向並排，優化間距 */
+  /* 選擇器區：橫向並排 */
   .selector-section {
     padding: 14px;
   }
@@ -980,41 +1280,56 @@ async function startAnalyze() {
     gap: 12px;
   }
   
-  /* 按鈕區：全寬顯示，保持合適高度 */
+  .selector-item {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  /* 按鈕區：全寬 */
   .action-section {
+    width: 100%;
     min-width: 100%;
   }
   
   .analyze-btn {
-    height: 48px;
+    height: 50px;
     font-size: 14px;
   }
 }
 
-/* 響應式：小螢幕自動堆疊 (< 768px) */
-@media (max-width: 768px) {
+/* 響應式：手機版 (< 600px) - 極致優化 */
+@media (max-width: 600px) {
+  .csr-view {
+    padding: 8px;
+    gap: 10px;
+  }
+  
+  .form-card, .chat-card {
+    padding: 10px;
+  }
+  
+  .compact-form {
+    gap: 12px;
+  }
+  
+  /* 主要區域垂直堆疊 */
   .main-sections-row {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
   
-  .config-action-section {
-    flex-direction: column;
-    gap: 16px;
-  }
-  
+  /* 上傳區：檔案垂直排列 */
   .upload-row {
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
   }
   
-  /* 檔案上傳區：增加高度以符合觸控標準 */
   .file-upload-area {
-    min-height: 48px;
+    min-height: 52px;
     height: auto;
     padding: 12px;
   }
   
-  /* 上傳提示文字調整 */
   .upload-hint {
     font-size: 13px;
   }
@@ -1023,42 +1338,44 @@ async function startAnalyze() {
     font-size: 20px;
   }
   
-  /* 選擇器區：手機版保持橫向並排 */
+  .upload-section {
+    padding: 14px;
+  }
+  
+  /* 配置執行區：垂直堆疊 */
+  .config-action-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  /* 選擇器區：改為垂直堆疊 */
   .selector-section {
-    padding: 16px;
+    padding: 14px;
   }
   
   .selector-row {
+    flex-direction: column;
     gap: 10px;
   }
   
   .selector-item {
-    flex: 1;
+    width: 100%;
   }
   
-  /* 按鈕區：全寬顯示 */
+  .compact-label {
+    font-size: 13px;
+  }
+  
+  /* 按鈕區：全寬大按鈕 */
   .action-section {
+    width: 100%;
     min-width: 100%;
   }
   
   .analyze-btn {
-    min-height: 52px;
+    min-height: 54px;
     font-size: 15px;
-  }
-  
-  .csr-view {
-    padding: 8px;
-    gap: 10px;
-  }
-  
-  /* 卡片內邊距調整 */
-  .form-card, .chat-card {
-    padding: 10px;
-  }
-  
-  /* 上傳區和選擇器區增加內邊距 */
-  .upload-section {
-    padding: 16px;
+    font-weight: 700;
   }
 }
 
