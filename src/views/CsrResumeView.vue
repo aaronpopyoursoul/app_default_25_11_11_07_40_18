@@ -25,7 +25,7 @@
             @download-report="handleDownloadReport"
           />
         </transition-group>
-        <div v-if="isAnalyzing" class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <LoadingStatus v-if="isAnalyzing" type="resume" />
       </div>
     </div>
     <div class="form-card">
@@ -174,6 +174,7 @@ import { useRoute } from 'vue-router'
 import { Upload, DataAnalysis, Close, QuestionFilled } from '@element-plus/icons-vue'
 import ModelSelector from '@/components/ModelSelector.vue'
 import ChatMessage from '@/components/ChatMessage.vue'
+import LoadingStatus from '@/components/LoadingStatus.vue'
 import { MODEL_OPTIONS } from '@/constants/models'
 import { useScrollToBottom } from '@/hooks/useScrollToBottom'
 import { useNotifier } from '@/hooks/useNotifier'

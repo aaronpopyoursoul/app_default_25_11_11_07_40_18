@@ -27,11 +27,7 @@
             @send-question="handleSuggestedQuestion"
           />
         </transition-group>
-        <div v-if="isWaitingResponse" class="typing">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
+        <LoadingStatus v-if="isWaitingResponse" type="loan" />
       </div>
     </div>
     <ChatInput :disabled="isWaitingResponse" @send="handleSend" @form-data-update="handleFormDataUpdate" />
@@ -133,6 +129,7 @@ import { useRoute } from 'vue-router'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import ChatMessage from '@/components/ChatMessage.vue'
 import ChatInput from '@/components/ChatInput.vue'
+import LoadingStatus from '@/components/LoadingStatus.vue'
 import { useScrollToBottom } from '@/hooks/useScrollToBottom'
 import type { ChatMessage as ChatMessageType, ChatFile } from '@/types/chat'
 import { chatWithAI } from '@/services/lendingClubApi'

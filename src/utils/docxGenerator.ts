@@ -142,7 +142,7 @@ export async function generateCsrReportDocx(data: AnalysisData): Promise<void> {
     const tableRows: TableRow[] = []
 
     // 表頭
-    const headers = ['分析原因', '符合JD需求項目', '得分']
+    const headers = ['符合JD需求項目', '得分', '分析原因']
     tableRows.push(
       new TableRow({
         children: headers.map(header => 
@@ -166,10 +166,6 @@ export async function generateCsrReportDocx(data: AnalysisData): Promise<void> {
         new TableRow({
           children: [
             new TableCell({
-              children: [new Paragraph({ text: String(item.desc || '-') })],
-              width: { size: 50, type: WidthType.PERCENTAGE }
-            }),
-            new TableCell({
               children: [new Paragraph({ text: String(item.name || '-') })],
               width: { size: 33, type: WidthType.PERCENTAGE }
             }),
@@ -181,6 +177,10 @@ export async function generateCsrReportDocx(data: AnalysisData): Promise<void> {
                 })
               ],
               width: { size: 17, type: WidthType.PERCENTAGE }
+            }),
+            new TableCell({
+              children: [new Paragraph({ text: String(item.desc || '-') })],
+              width: { size: 50, type: WidthType.PERCENTAGE }
             })
           ]
         })

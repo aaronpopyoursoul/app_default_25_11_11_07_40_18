@@ -290,24 +290,24 @@ export default defineComponent({
       try {
         const parsed = JSON.parse(text)
         if (!Array.isArray(parsed) || parsed.length === 0) return `<pre>${text}</pre>`
-        const keys = Object.keys(parsed[0])
         
-        // 欄位名稱中英文對照
+        // 定義欄位顯示順序和名稱
+        const columnOrder = ['name', 'score', 'desc']
         const columnNameMap: Record<string, string> = {
-          'desc': '分析原因',
           'name': '符合JD需求項目',
-          'score': '得分'
+          'score': '得分',
+          'desc': '分析原因'
         }
         
         let html = '<table class="result-data-table"><thead><tr>'
-        keys.forEach(k => { 
+        columnOrder.forEach(k => { 
           const displayName = columnNameMap[k] || k
           html += `<th>${displayName}</th>` 
         })
         html += '</tr></thead><tbody>'
         parsed.forEach(row => {
           html += '<tr>'
-          keys.forEach(k => { html += `<td>${row[k] ?? '-'}</td>` })
+          columnOrder.forEach(k => { html += `<td>${row[k] ?? '-'}</td>` })
           html += '</tr>'
         })
         html += '</tbody></table>'
