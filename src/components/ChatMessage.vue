@@ -6,9 +6,9 @@
   >
     <img :src="aiAvatar" alt="AI" class="avatar" />
     <div class="chat-bubble">
-      <!-- 下載按鈕 - 僅在 answer 類型訊息顯示 -->
+      <!-- 下載按鈕 - 僅在有效的 answer 類型訊息顯示 -->
       <button 
-        v-if="isAnswerKind" 
+        v-if="shouldShowDownload" 
         :class="['download-btn', { downloading: isDownloading }]"
         @click="handleDownload"
         :disabled="isDownloading"
@@ -158,6 +158,38 @@ export default defineComponent({
     const isResultKind = computed(() => props.message.content.meta?.messageKind === 'result')
     const isUsageInfoKind = computed(() => props.message.content.meta?.messageKind === 'usage-info')
     const isAnswerKind = computed(() => props.message.content.meta?.messageKind === 'answer')
+    
+    // 判斷是否應該顯示下載按鈕
+    const shouldShowDownload = computed(() => {
+      if (!isAnswerKind.value) return false
+      
+      const text = props.message.content.text
+      if (!text) return false
+      
+      // 排除不完整或錯誤的回覆
+      const invalidPatterns = [
+        /^（無分析內容）$/,
+        /^暫無資料$/,
+        /^錯誤/,
+        /^Error/i,
+        /^抱歉/,
+        /^很抱歉/,
+        /^無法/,
+        /^此版本暫無/
+      ]
+      
+      // 檢查是否匹配任何無效模式
+      if (invalidPatterns.some(pattern => pattern.test(text.trim()))) {
+        return false
+      }
+      
+      // 檢查內容長度,太短的回覆可能不完整
+      if (text.trim().length < 50) {
+        return false
+      }
+      
+      return true
+    })
     
     // 下載功能
     const isDownloading = ref(false)
@@ -366,6 +398,7 @@ export default defineComponent({
       isResultKind, 
       isUsageInfoKind,
       isAnswerKind,
+      shouldShowDownload,
       isDownloading,
       handleDownload,
       resetDownloadState,
